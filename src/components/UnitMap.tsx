@@ -1,6 +1,29 @@
 import React, { useState } from 'react';
 import { UnitData, UserProgress, GradeLevel } from '../types';
-import { Star, CheckCircle2, Play, Sparkles, Flame, Clock, Award, ArrowRight, Map, List, Gift, Check, Volume2, Trophy, ShieldCheck, Zap } from 'lucide-react';
+import {
+  Star,
+  CheckCircle2,
+  Play,
+  Sparkles,
+  Flame,
+  Clock,
+  Award,
+  ArrowRight,
+  Map,
+  List,
+  Gift,
+  Check,
+  Volume2,
+  Trophy,
+  ShieldCheck,
+  Zap,
+  Lock,
+  Compass,
+  X,
+  ChevronRight,
+  Bookmark,
+  BookOpen
+} from 'lucide-react';
 import { playSoundEffect, speakText, speakVietnamese } from '../utils/sound';
 import confetti from 'canvas-confetti';
 
@@ -11,25 +34,86 @@ interface UnitMapProps {
   onOpenStudentProfile?: () => void;
   onSelectGrade?: (grade: GradeLevel) => void;
   onStartSrsReview?: () => void;
+  onAddXp?: (amount: number) => void;
 }
 
-const LAND_THEMES: Record<number, { name: string; emoji: string; color: string; bgGradient: string }> = {
-  1: { name: '🏠 Home Island', emoji: '🏠', color: 'text-amber-600', bgGradient: 'from-amber-100 via-orange-50 to-amber-200' },
-  2: { name: '🌳 Forest World', emoji: '🌳', color: 'text-emerald-600', bgGradient: 'from-emerald-100 via-teal-50 to-emerald-200' },
-  3: { name: '🏖️ Birthday Island', emoji: '🏖️', color: 'text-rose-600', bgGradient: 'from-pink-100 via-rose-50 to-pink-200' },
-  4: { name: '🚜 Green Farm', emoji: '🚜', color: 'text-lime-600', bgGradient: 'from-lime-100 via-green-50 to-lime-200' },
-  5: { name: '🏫 Magic School', emoji: '🏫', color: 'text-blue-600', bgGradient: 'from-blue-100 via-sky-50 to-indigo-200' },
-  6: { name: '🏪 Toy Store', emoji: '🏪', color: 'text-purple-600', bgGradient: 'from-purple-100 via-fuchsia-50 to-purple-200' },
-  7: { name: '🍕 Food Market', emoji: '🍕', color: 'text-orange-600', bgGradient: 'from-orange-100 via-amber-50 to-yellow-200' },
-  8: { name: '🎨 Color Park', emoji: '🎨', color: 'text-pink-600', bgGradient: 'from-pink-100 via-purple-50 to-rose-200' },
-  9: { name: '🦁 Safari Park', emoji: '🦁', color: 'text-amber-700', bgGradient: 'from-yellow-100 via-amber-50 to-orange-200' },
-  10: { name: '🚀 Space Galaxy', emoji: '🚀', color: 'text-indigo-600', bgGradient: 'from-indigo-100 via-purple-50 to-slate-200' },
-  11: { name: '🌊 Deep Ocean', emoji: '🌊', color: 'text-cyan-600', bgGradient: 'from-cyan-100 via-blue-50 to-sky-200' },
-  12: { name: '🏰 Royal Castle', emoji: '🏰', color: 'text-yellow-600', bgGradient: 'from-yellow-100 via-amber-50 to-amber-200' },
-  13: { name: '🎡 Fun Fair', emoji: '🎡', color: 'text-red-600', bgGradient: 'from-rose-100 via-red-50 to-orange-200' },
-  14: { name: '🏕️ Forest Camp', emoji: '🏕️', color: 'text-emerald-700', bgGradient: 'from-teal-100 via-emerald-50 to-green-200' },
-  15: { name: '🧁 Sweet Bakery', emoji: '🧁', color: 'text-pink-500', bgGradient: 'from-pink-100 via-rose-50 to-fuchsia-200' },
-  16: { name: '🏆 Champion Peak', emoji: '🏆', color: 'text-amber-500', bgGradient: 'from-amber-200 via-yellow-100 to-amber-300' },
+// World Biomes configuration with custom themes & backgrounds
+export interface WorldBiome {
+  id: number;
+  name: string;
+  subtitle: string;
+  emoji: string;
+  unitRange: [number, number];
+  bgGradient: string;
+  borderColor: string;
+  accentColor: string;
+  decorations: string[];
+}
+
+export const WORLD_BIOMES: WorldBiome[] = [
+  {
+    id: 1,
+    name: 'Đảo Nhiệt Đới Khởi Đầu',
+    subtitle: 'Khám phá từ vựng cơ bản đầu tiên',
+    emoji: '🏝️',
+    unitRange: [1, 4],
+    bgGradient: 'from-sky-300 via-teal-100 to-emerald-200',
+    borderColor: 'border-teal-500',
+    accentColor: 'bg-teal-500 text-white',
+    decorations: ['☁️', '⛵', '🌴', '🐬', '☀️'],
+  },
+  {
+    id: 2,
+    name: 'Khu Rừng Phép Thuật',
+    subtitle: 'Phiêu lưu qua tán cây & sinh vật đáng yêu',
+    emoji: '🌲',
+    unitRange: [5, 8],
+    bgGradient: 'from-emerald-300 via-lime-100 to-amber-200',
+    borderColor: 'border-emerald-600',
+    accentColor: 'bg-emerald-600 text-white',
+    decorations: ['🍄', '🦋', '🦉', '🌷', '✨'],
+  },
+  {
+    id: 3,
+    name: 'Vương Quốc Hoàng Gia',
+    subtitle: 'Luyện tập giao tiếp & thử thách lâu đài',
+    emoji: '🏰',
+    unitRange: [9, 12],
+    bgGradient: 'from-amber-200 via-orange-100 to-rose-200',
+    borderColor: 'border-amber-600',
+    accentColor: 'bg-amber-500 text-slate-950',
+    decorations: ['👑', '🛡️', '🦄', '🏰', '🌈'],
+  },
+  {
+    id: 4,
+    name: 'Ngân Hà Vũ Trụ Tri Thức',
+    subtitle: 'Chinh phục đỉnh cao tiếng Anh siêu việt',
+    emoji: '🚀',
+    unitRange: [13, 16],
+    bgGradient: 'from-indigo-300 via-purple-100 to-slate-300',
+    borderColor: 'border-indigo-600',
+    accentColor: 'bg-indigo-600 text-white',
+    decorations: ['🪐', '⭐', '🛰️', '🛸', '🌙'],
+  },
+];
+
+const LAND_THEMES: Record<number, { name: string; emoji: string; color: string; badgeBg: string }> = {
+  1: { name: '🏠 Home Island', emoji: '🏠', color: 'text-amber-600', badgeBg: 'bg-amber-100 border-amber-300 text-amber-900' },
+  2: { name: '🌳 Forest World', emoji: '🌳', color: 'text-emerald-600', badgeBg: 'bg-emerald-100 border-emerald-300 text-emerald-900' },
+  3: { name: '🏖️ Birthday Island', emoji: '🏖️', color: 'text-rose-600', badgeBg: 'bg-rose-100 border-rose-300 text-rose-900' },
+  4: { name: '🚜 Green Farm', emoji: '🚜', color: 'text-lime-600', badgeBg: 'bg-lime-100 border-lime-300 text-lime-900' },
+  5: { name: '🏫 Magic School', emoji: '🏫', color: 'text-blue-600', badgeBg: 'bg-blue-100 border-blue-300 text-blue-900' },
+  6: { name: '🏪 Toy Store', emoji: '🏪', color: 'text-purple-600', badgeBg: 'bg-purple-100 border-purple-300 text-purple-900' },
+  7: { name: '🍕 Food Market', emoji: '🍕', color: 'text-orange-600', badgeBg: 'bg-orange-100 border-orange-300 text-orange-900' },
+  8: { name: '🎨 Color Park', emoji: '🎨', color: 'text-pink-600', badgeBg: 'bg-pink-100 border-pink-300 text-pink-900' },
+  9: { name: '🦁 Safari Park', emoji: '🦁', color: 'text-amber-700', badgeBg: 'bg-yellow-100 border-yellow-300 text-yellow-900' },
+  10: { name: '🚀 Space Galaxy', emoji: '🚀', color: 'text-indigo-600', badgeBg: 'bg-indigo-100 border-indigo-300 text-indigo-900' },
+  11: { name: '🌊 Deep Ocean', emoji: '🌊', color: 'text-cyan-600', badgeBg: 'bg-cyan-100 border-cyan-300 text-cyan-900' },
+  12: { name: '🏰 Royal Castle', emoji: '🏰', color: 'text-yellow-600', badgeBg: 'bg-amber-100 border-amber-300 text-amber-900' },
+  13: { name: '🎡 Fun Fair', emoji: '🎡', color: 'text-red-600', badgeBg: 'bg-rose-100 border-rose-300 text-rose-900' },
+  14: { name: '🏕️ Forest Camp', emoji: '🏕️', color: 'text-emerald-700', badgeBg: 'bg-emerald-100 border-emerald-300 text-emerald-900' },
+  15: { name: '🧁 Sweet Bakery', emoji: '🧁', color: 'text-pink-500', badgeBg: 'bg-pink-100 border-pink-300 text-pink-900' },
+  16: { name: '🏆 Champion Peak', emoji: '🏆', color: 'text-amber-500', badgeBg: 'bg-yellow-200 border-amber-400 text-amber-950' },
 };
 
 export const UnitMap: React.FC<UnitMapProps> = ({
@@ -39,11 +123,20 @@ export const UnitMap: React.FC<UnitMapProps> = ({
   onOpenStudentProfile,
   onSelectGrade,
   onStartSrsReview,
+  onAddXp,
 }) => {
   const currentGrade = progress.selectedGrade || 2;
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  const [activeBiomeId, setActiveBiomeId] = useState<number>(1);
   const [claimedReward, setClaimedReward] = useState(false);
   const [showRewardModal, setShowRewardModal] = useState(false);
+  const [lockedBiomeNotice, setLockedBiomeNotice] = useState<{
+    biomeName: string;
+    completedCount: number;
+    totalCount: number;
+  } | null>(null);
+  const [previewUnit, setPreviewUnit] = useState<UnitData | null>(null);
+  const [claimedChests, setClaimedChests] = useState<number[]>([]);
 
   // Safe fallbacks for progress arrays
   const completedUnits = progress?.completedUnits || [];
@@ -63,18 +156,42 @@ export const UnitMap: React.FC<UnitMapProps> = ({
     vocabularies: [],
     quizzes: [],
   };
+
+  const getUnitNum = (id: number) => (id >= 100 ? id % 100 || 16 : id);
+
+  // Auto focus the active biome based on nextIncompleteUnit
+  React.useEffect(() => {
+    const unitNum = getUnitNum(nextIncompleteUnit.id);
+    const matchingBiome = WORLD_BIOMES.find(
+      (b) => unitNum >= b.unitRange[0] && unitNum <= b.unitRange[1]
+    );
+    if (matchingBiome) {
+      setActiveBiomeId(matchingBiome.id);
+    }
+  }, [nextIncompleteUnit.id]);
+
+  const currentBiome = WORLD_BIOMES.find((b) => b.id === activeBiomeId) || WORLD_BIOMES[0];
+
+  // Filter units for current active biome or all
+  const filteredUnits = safeUnits.filter(
+    (u) => {
+      const num = getUnitNum(u.id);
+      return num >= currentBiome.unitRange[0] && num <= currentBiome.unitRange[1];
+    }
+  );
+  // If filtered is empty fallback to all
+  const displayedMapUnits = filteredUnits.length > 0 ? filteredUnits : safeUnits;
+
   const completedCount = safeUnits.filter((u) => completedUnits.includes(u.id)).length;
   const nextVocabs = nextIncompleteUnit.vocabularies || [];
   const vocabCount = nextVocabs.length;
-  const masteredInCurrent = nextVocabs.filter((v) =>
-    masteredWordIds.includes(v.id)
-  ).length;
+  const masteredInCurrent = nextVocabs.filter((v) => masteredWordIds.includes(v.id)).length;
 
-  const currentTheme = LAND_THEMES[nextIncompleteUnit.id] || {
+  const currentTheme = LAND_THEMES[getUnitNum(nextIncompleteUnit.id)] || {
     name: `Vùng Đất ${nextIncompleteUnit.titleEn}`,
     emoji: nextIncompleteUnit.iconEmoji || '🗺️',
     color: 'text-amber-600',
-    bgGradient: 'from-amber-100 via-orange-50 to-amber-200',
+    badgeBg: 'bg-amber-100 border-amber-300 text-amber-900',
   };
 
   const handleStartContinue = () => {
@@ -87,6 +204,34 @@ export const UnitMap: React.FC<UnitMapProps> = ({
     confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
     setClaimedReward(true);
     setShowRewardModal(true);
+    if (onAddXp) onAddXp(20);
+  };
+
+  const handleClaimChest = (biomeId: number) => {
+    if (claimedChests.includes(biomeId)) return;
+
+    // Strict check: ALL units in current biome must be 100% completed!
+    const biomeUnits = safeUnits.filter((u) => {
+      const num = getUnitNum(u.id);
+      return num >= currentBiome.unitRange[0] && num <= currentBiome.unitRange[1];
+    });
+    const completedInBiome = biomeUnits.filter((u) => completedUnits.includes(u.id));
+    const isFullyCompleted = biomeUnits.length > 0 && completedInBiome.length === biomeUnits.length;
+
+    if (!isFullyCompleted) {
+      playSoundEffect('wrong');
+      setLockedBiomeNotice({
+        biomeName: currentBiome.name,
+        completedCount: completedInBiome.length,
+        totalCount: biomeUnits.length,
+      });
+      return;
+    }
+
+    playSoundEffect('fanfare');
+    confetti({ particleCount: 120, spread: 80, origin: { y: 0.5 } });
+    setClaimedChests((prev) => [...prev, biomeId]);
+    if (onAddXp) onAddXp(150);
   };
 
   const speakMiuGreeting = () => {
@@ -97,7 +242,7 @@ export const UnitMap: React.FC<UnitMapProps> = ({
   return (
     <div className="py-2 max-w-5xl mx-auto space-y-6">
       {/* 1. TOP HERO DASHBOARD - GAMIFIED PLAYER BAR */}
-      <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 border-4 border-slate-900 rounded-3xl p-4 sm:p-5 text-white shadow-lg relative overflow-hidden">
+      <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 border-4 border-slate-900 rounded-3xl p-4 sm:p-5 text-white shadow-xl relative overflow-hidden">
         {/* Background Sparkles Effect */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-500/20 via-transparent to-transparent pointer-events-none" />
 
@@ -119,7 +264,7 @@ export const UnitMap: React.FC<UnitMapProps> = ({
                 <h2 className="text-lg font-black tracking-wide text-white">
                   {progress.studentName || 'Bé Bin'}
                 </h2>
-                <span className="px-2 py-0.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black text-[11px] rounded-full shadow-2xs">
+                <span className="px-2.5 py-0.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black text-[11px] rounded-full shadow-2xs">
                   🏆 Rank Gold
                 </span>
               </div>
@@ -136,7 +281,7 @@ export const UnitMap: React.FC<UnitMapProps> = ({
                 </div>
                 <div className="flex items-center gap-1 text-emerald-400">
                   <Zap className="w-4 h-4 fill-emerald-400" />
-                  <span>{progress.vouchers * 10 + 150} Coin</span>
+                  <span>{progress.vouchers || 0} Phiếu</span>
                 </div>
               </div>
             </div>
@@ -154,7 +299,7 @@ export const UnitMap: React.FC<UnitMapProps> = ({
               }`}
             >
               <Gift className="w-4 h-4" />
-              <span>{claimedReward ? '✅ Đã Nhận 20 Coin' : '🎁 Nhận 20 Coin Hôm Nay'}</span>
+              <span>{claimedReward ? '✅ Đã Nhận 20 EXP' : '🎁 Nhận 20 EXP Hôm Nay'}</span>
             </button>
           </div>
         </div>
@@ -243,135 +388,229 @@ export const UnitMap: React.FC<UnitMapProps> = ({
         </div>
       )}
 
-      {/* 4. MAP MODE / LIST MODE TOGGLE & TITLE */}
-      <div className="flex items-center justify-between pt-2">
-        <div>
-          <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <span>🗺️ Bản Đồ Phiêu Lưu Lớp {currentGrade}</span>
-            <span className="text-xs bg-amber-100 border border-amber-300 px-3 py-0.5 rounded-full font-bold text-amber-900">
-              {completedCount}/{units.length} Hoàn Thành
-            </span>
-          </h3>
-          <p className="text-xs font-bold text-slate-500">
-            Mỗi Unit là một Vùng Đất kỳ thú theo SGK Bộ GD&ĐT (Kết Nối Tri Thức)
-          </p>
+      {/* 4. WORLD BIOME NAVIGATION TABS & MAP MODE TOGGLE */}
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
+              <span>🗺️ Bản Đồ Phiêu Lưu Lớp {currentGrade}</span>
+              <span className="text-xs bg-amber-100 border border-amber-300 px-3 py-0.5 rounded-full font-bold text-amber-900">
+                {completedCount}/{units.length} Bài Đã Học
+              </span>
+            </h3>
+            <p className="text-xs font-bold text-slate-500">
+              Mỗi Unit là một Vùng Đất kỳ thú theo SGK Bộ GD&ĐT (Kết Nối Tri Thức)
+            </p>
+          </div>
+
+          {/* View mode toggle button */}
+          <div className="flex items-center bg-slate-200 border border-slate-300 p-1 rounded-2xl shadow-2xs self-start sm:self-auto">
+            <button
+              onClick={() => {
+                playSoundEffect('pop');
+                setViewMode('map');
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+                viewMode === 'map'
+                  ? 'bg-amber-400 text-slate-900 border border-slate-900 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Map className="w-4 h-4" />
+              <span>Bản Đồ 🗺️</span>
+            </button>
+            <button
+              onClick={() => {
+                playSoundEffect('pop');
+                setViewMode('list');
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+                viewMode === 'list'
+                  ? 'bg-amber-400 text-slate-900 border border-slate-900 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <List className="w-4 h-4" />
+              <span>Danh Sách 📋</span>
+            </button>
+          </div>
         </div>
 
-        {/* View mode toggle button */}
-        <div className="flex items-center bg-slate-200 border border-slate-300 p-1 rounded-2xl shadow-2xs">
-          <button
-            onClick={() => {
-              playSoundEffect('pop');
-              setViewMode('map');
-            }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
-              viewMode === 'map'
-                ? 'bg-amber-400 text-slate-900 border border-slate-900 shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Map className="w-4 h-4" />
-            <span className="hidden sm:inline">Bản Đồ 🗺️</span>
-          </button>
-          <button
-            onClick={() => {
-              playSoundEffect('pop');
-              setViewMode('list');
-            }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
-              viewMode === 'list'
-                ? 'bg-amber-400 text-slate-900 border border-slate-900 shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <List className="w-4 h-4" />
-            <span className="hidden sm:inline">Danh Sách 📋</span>
-          </button>
-        </div>
+        {/* BIOME WORLD SELECTOR TABS (Only in map view) */}
+        {viewMode === 'map' && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+            {WORLD_BIOMES.map((biome) => {
+              const isActive = activeBiomeId === biome.id;
+              const biomeUnits = safeUnits.filter(
+                (u) => u.id >= biome.unitRange[0] && u.id <= biome.unitRange[1]
+              );
+              const biomeCompleted = biomeUnits.filter((u) => completedUnits.includes(u.id)).length;
+              const isAllDone = biomeUnits.length > 0 && biomeCompleted === biomeUnits.length;
+
+              return (
+                <button
+                  key={biome.id}
+                  onClick={() => {
+                    playSoundEffect('pop');
+                    setActiveBiomeId(biome.id);
+                  }}
+                  className={`p-2.5 rounded-2xl border-3 text-left transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between ${
+                    isActive
+                      ? `bg-white ${biome.borderColor} ring-4 ring-amber-300/60 shadow-md -translate-y-0.5`
+                      : 'bg-slate-50 border-slate-300 hover:bg-white hover:border-slate-400 opacity-90'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xl">{biome.emoji}</span>
+                    <span
+                      className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                        isAllDone
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : isActive
+                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                          : 'bg-slate-200 text-slate-700'
+                      }`}
+                    >
+                      {biomeCompleted}/{biomeUnits.length} Done
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 className="font-black text-xs text-slate-900 truncate">
+                      Thế Giới {biome.id}
+                    </h4>
+                    <p className="text-[10px] font-bold text-slate-500 truncate">
+                      Unit {biome.unitRange[0]} - {biome.unitRange[1]}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* 5. ADVENTURE MAP VIEW (MARIO / DUOLINGO WINDING TRAIL) */}
+      {/* 5. GAMIFIED MAP CANVAS WITH WINDING PATH & THEMED BIOME ENVIRONMENT */}
       {viewMode === 'map' ? (
-        <div className="relative bg-gradient-to-b from-sky-200 via-emerald-100 to-amber-100 border-4 border-slate-900 rounded-3xl p-6 sm:p-10 shadow-lg overflow-hidden min-h-[600px]">
-          {/* Background decor elements */}
-          <div className="absolute top-6 left-8 text-4xl opacity-30 select-none pointer-events-none">☁️</div>
-          <div className="absolute top-12 right-12 text-4xl opacity-30 select-none pointer-events-none">☁️</div>
-          <div className="absolute bottom-10 left-12 text-5xl opacity-30 select-none pointer-events-none">🏰</div>
-          <div className="absolute bottom-20 right-8 text-5xl opacity-30 select-none pointer-events-none">🌴</div>
+        <div
+          className={`relative border-4 border-slate-900 rounded-3xl p-6 sm:p-10 shadow-xl overflow-hidden min-h-[640px] bg-gradient-to-b ${currentBiome.bgGradient} transition-all duration-500`}
+        >
+          {/* Floating World Ambient Decor Elements */}
+          <div className="absolute top-6 left-6 text-4xl opacity-40 select-none pointer-events-none animate-pulse">
+            {currentBiome.decorations[0]}
+          </div>
+          <div className="absolute top-12 right-10 text-4xl opacity-40 select-none pointer-events-none animate-bounce">
+            {currentBiome.decorations[1]}
+          </div>
+          <div className="absolute bottom-12 left-10 text-5xl opacity-40 select-none pointer-events-none">
+            {currentBiome.decorations[2]}
+          </div>
+          <div className="absolute bottom-20 right-8 text-5xl opacity-40 select-none pointer-events-none">
+            {currentBiome.decorations[3]}
+          </div>
+          <div className="absolute top-1/2 right-4 text-3xl opacity-30 select-none pointer-events-none">
+            {currentBiome.decorations[4]}
+          </div>
 
-          {/* Winding Map Nodes */}
-          <div className="relative z-10 flex flex-col items-center space-y-12 py-4">
-            {units.map((unit, index) => {
-              const isCompleted = progress.completedUnits.includes(unit.id);
+          {/* Biome Header Banner */}
+          <div className="relative z-10 max-w-md mx-auto mb-8 text-center bg-white/90 backdrop-blur-xs border-3 border-slate-900 rounded-2xl p-3 shadow-md">
+            <span className="text-2xl">{currentBiome.emoji}</span>
+            <h3 className="text-base sm:text-lg font-black text-slate-900">
+              {currentBiome.name}
+            </h3>
+            <p className="text-xs font-bold text-slate-600">{currentBiome.subtitle}</p>
+          </div>
+
+          {/* Dynamic Map Nodes List */}
+          <div className="relative z-10 flex flex-col items-center space-y-16 py-4">
+            {displayedMapUnits.map((unit, index) => {
+              const isCompleted = completedUnits.includes(unit.id);
               const isCurrent = unit.id === nextIncompleteUnit.id;
-              const stars = progress.unitStars[unit.id] || 0;
-              const theme = LAND_THEMES[unit.id] || {
+              const stars = (progress?.unitStars || {})[unit.id] || 0;
+              const theme = LAND_THEMES[getUnitNum(unit.id)] || {
                 name: `Unit ${unit.id}`,
                 emoji: unit.iconEmoji || '🗺️',
                 color: 'text-amber-600',
-                bgGradient: 'from-amber-100 to-yellow-200',
+                badgeBg: 'bg-amber-100 border-amber-300 text-amber-900',
               };
 
-              // Calculate zigzag offset (left, center, right)
-              const offsets = ['translate-x-0', 'sm:translate-x-24', 'translate-x-0', 'sm:-translate-x-24'];
+              // Zigzag layout offset
+              const offsets = [
+                'translate-x-0',
+                'sm:translate-x-28',
+                'translate-x-0',
+                'sm:-translate-x-28',
+              ];
               const offsetClass = offsets[index % offsets.length];
 
               return (
                 <div
                   key={unit.id}
-                  className={`relative flex flex-col items-center transition-transform hover:scale-105 ${offsetClass}`}
+                  className={`relative flex flex-col items-center transition-all duration-300 ${offsetClass}`}
                 >
-                  {/* Connecting Trail Line to next node */}
-                  {index < units.length - 1 && (
-                    <div className="absolute top-16 w-1 h-16 border-l-4 border-dashed border-slate-700/40 pointer-events-none z-0" />
+                  {/* Connecting Dashed River Trail to next node */}
+                  {index < displayedMapUnits.length - 1 && (
+                    <div className="absolute top-20 w-1 h-20 border-l-4 border-dashed border-slate-800/40 pointer-events-none z-0" />
                   )}
 
-                  {/* Active Mascot Pointer above current unit */}
+                  {/* Mascot Mascot Pointer above current active unit */}
                   {isCurrent && (
-                    <div className="absolute -top-12 z-20 flex flex-col items-center animate-bounce">
+                    <div className="absolute -top-14 z-30 flex flex-col items-center animate-bounce">
                       <span className="px-3 py-1 bg-amber-400 text-slate-950 border-2 border-slate-900 font-black text-xs rounded-full shadow-md whitespace-nowrap flex items-center gap-1">
-                        🐱 Bé đang ở đây!
+                        🐱 Bé đang học ở đây!
                       </span>
                       <div className="w-0 h-0 border-l-6 border-l-transparent border-r-6 border-r-transparent border-t-8 border-t-slate-900" />
                     </div>
                   )}
 
-                  {/* Unit Node Island Circle */}
+                  {/* Node Island Circle */}
                   <div
                     onClick={() => {
                       playSoundEffect('pop');
-                      onSelectUnit(unit);
+                      setPreviewUnit(unit);
                     }}
-                    className={`relative z-10 w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 flex flex-col items-center justify-center p-2 cursor-pointer shadow-md transition-all ${
+                    className={`relative z-10 w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 flex flex-col items-center justify-center p-2 cursor-pointer shadow-lg transition-all transform hover:scale-110 active:scale-95 ${
                       isCurrent
-                        ? 'border-amber-500 bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-500 ring-8 ring-amber-300/60 shadow-xl animate-pulse scale-110'
+                        ? 'border-amber-500 bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-500 ring-8 ring-amber-300/70 shadow-2xl animate-pulse'
                         : isCompleted
                         ? 'border-emerald-600 bg-gradient-to-br from-emerald-100 via-teal-200 to-emerald-300'
-                        : 'border-slate-400 bg-white hover:border-slate-900'
+                        : 'border-slate-800 bg-white hover:border-amber-500'
                     }`}
                   >
-                    {/* Land Emoji Icon */}
+                    {/* Land Emoji */}
                     <span className="text-3xl sm:text-4xl drop-shadow-xs">{theme.emoji}</span>
 
                     {/* Unit Number Badge */}
-                    <span className="text-[11px] font-black text-slate-900 bg-white/90 border border-slate-900 px-2 py-0.5 rounded-full mt-1">
+                    <span className="text-[11px] font-black text-slate-900 bg-white/95 border border-slate-900 px-2.5 py-0.5 rounded-full mt-1 shadow-2xs">
                       Unit {unit.id}
                     </span>
 
-                    {/* Completion Checkmark / Stars Badge */}
+                    {/* Checkmark or Stars Badge */}
                     {isCompleted && (
-                      <div className="absolute -top-1 -right-1 bg-emerald-500 text-white rounded-full p-1 border-2 border-slate-900 shadow-2xs">
+                      <div className="absolute -top-1 -right-1 bg-emerald-500 text-white rounded-full p-1 border-2 border-slate-900 shadow-md">
                         <Check className="w-4 h-4 stroke-[3]" />
                       </div>
                     )}
                   </div>
 
-                  {/* Land Title Card Below Node */}
-                  <div className="mt-2 text-center bg-white/95 border-2 border-slate-900 rounded-2xl px-3 py-2 shadow-md max-w-[210px] w-full">
-                    <h4 className="font-black text-xs sm:text-sm text-slate-900 leading-tight">
+                  {/* Unit Title Card Below Node */}
+                  <div
+                    onClick={() => {
+                      playSoundEffect('pop');
+                      setPreviewUnit(unit);
+                    }}
+                    className="mt-2 text-center bg-white/95 backdrop-blur-xs border-2 border-slate-900 rounded-2xl px-3 py-2 shadow-md max-w-[210px] w-full cursor-pointer hover:border-amber-500 transition-colors"
+                  >
+                    <div className="flex items-center justify-center gap-1 mb-0.5">
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 border border-slate-300 text-slate-700">
+                        Âm: {unit.letterFocus}
+                      </span>
+                    </div>
+
+                    <h4 className="font-black text-xs sm:text-sm text-slate-900 leading-tight truncate">
                       {unit.titleEn}
                     </h4>
-                    <p className="text-[11px] font-bold text-amber-800 leading-tight mt-0.5">
+                    <p className="text-[11px] font-bold text-amber-800 leading-tight truncate mt-0.5">
                       {unit.titleVi}
                     </p>
 
@@ -390,6 +629,28 @@ export const UnitMap: React.FC<UnitMapProps> = ({
                 </div>
               );
             })}
+
+            {/* Treasure Chest Milestone Node at bottom of biome */}
+            <div className="pt-6 flex flex-col items-center">
+              <button
+                onClick={() => handleClaimChest(currentBiome.id)}
+                disabled={claimedChests.includes(currentBiome.id)}
+                className={`p-4 rounded-3xl border-4 border-slate-900 shadow-xl flex flex-col items-center gap-1 cursor-pointer transition-transform hover:scale-105 active:scale-95 ${
+                  claimedChests.includes(currentBiome.id)
+                    ? 'bg-slate-200 opacity-80 cursor-default'
+                    : 'bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-300 animate-bounce'
+                }`}
+              >
+                <span className="text-4xl">
+                  {claimedChests.includes(currentBiome.id) ? '🎁' : '👑'}
+                </span>
+                <span className="text-xs font-black text-slate-900">
+                  {claimedChests.includes(currentBiome.id)
+                    ? '✅ Đã Nhận Quả Cầu Tri Thức'
+                    : '🎁 Bó Quà Thế Giới! (Chạm để mở)'}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       ) : (
@@ -403,14 +664,14 @@ export const UnitMap: React.FC<UnitMapProps> = ({
             const masteredCount = unitVocabs.filter((v) =>
               masteredWordIds.includes(v.id)
             ).length;
-            const theme = LAND_THEMES[unit.id] || { name: unit.titleEn, emoji: '🗺️' };
+            const theme = LAND_THEMES[getUnitNum(unit.id)] || { name: unit.titleEn, emoji: '🗺️' };
 
             return (
               <div
                 key={unit.id}
                 onClick={() => {
                   playSoundEffect('pop');
-                  onSelectUnit(unit);
+                  setPreviewUnit(unit);
                 }}
                 className={`bg-white rounded-2xl border-3 transition-all duration-200 cursor-pointer group flex flex-col justify-between p-4 shadow-2xs hover:shadow-md hover:-translate-y-0.5 ${
                   isCompleted
@@ -498,7 +759,80 @@ export const UnitMap: React.FC<UnitMapProps> = ({
         </div>
       )}
 
-      {/* 7. REWARD CLAIMED MODAL */}
+      {/* 7. UNIT PREVIEW & QUICK START MODAL */}
+      {previewUnit && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white border-4 border-slate-900 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 relative animate-in zoom-in-95">
+            <button
+              onClick={() => setPreviewUnit(null)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-600 font-bold cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+              <div className="w-14 h-14 bg-amber-100 border-2 border-slate-900 rounded-2xl flex items-center justify-center text-3xl shadow-sm">
+                {previewUnit.iconEmoji || '🎒'}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 bg-amber-100 border border-amber-300 text-amber-900 text-[10px] font-black rounded-full">
+                    Unit {previewUnit.id} • Âm {previewUnit.letterFocus}
+                  </span>
+                </div>
+                <h3 className="text-lg font-black text-slate-900 mt-0.5">
+                  {previewUnit.titleEn}
+                </h3>
+                <p className="text-xs font-bold text-amber-800">{previewUnit.titleVi}</p>
+              </div>
+            </div>
+
+            {/* Vocabularies Chip Preview */}
+            <div>
+              <h4 className="text-xs font-black text-slate-700 mb-2 flex items-center gap-1">
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Từ vựng chuẩn bị học ({previewUnit.vocabularies.length} từ):</span>
+              </h4>
+              <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1">
+                {previewUnit.vocabularies.map((v) => (
+                  <button
+                    key={v.id}
+                    onClick={() => speakText(v.word)}
+                    className="px-2.5 py-1 bg-slate-100 hover:bg-amber-100 border border-slate-300 hover:border-amber-400 rounded-xl text-xs font-black text-slate-800 flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <span>{v.word}</span>
+                    <Volume2 className="w-3 h-3 text-amber-600" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* XP and Rewards Info */}
+            <div className="bg-amber-50 border border-amber-200 p-3 rounded-2xl flex items-center justify-between text-xs font-bold text-amber-900">
+              <span className="flex items-center gap-1">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <span>Phần thưởng hoàn thành:</span>
+              </span>
+              <span className="font-black text-amber-700 text-sm">+150 XP & 🌟 3 Sao</span>
+            </div>
+
+            {/* Start Button */}
+            <button
+              onClick={() => {
+                const u = previewUnit;
+                setPreviewUnit(null);
+                onSelectUnit(u);
+              }}
+              className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 text-white border-3 border-slate-900 rounded-2xl font-black text-base shadow-[0_4px_0_#1e293b] active:translate-y-0.5 transition-all cursor-pointer flex items-center justify-center gap-2"
+            >
+              <Play className="w-5 h-5 fill-white" />
+              <span>BẮT ĐẦU HỌC BÀI NÀY NGAY 🚀</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 8. REWARD CLAIMED MODAL */}
       {showRewardModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="bg-white border-4 border-slate-900 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl space-y-4 animate-in zoom-in-95">
@@ -511,7 +845,7 @@ export const UnitMap: React.FC<UnitMapProps> = ({
             </h3>
 
             <p className="text-sm font-bold text-slate-600">
-              Bé nhận được <span className="text-amber-600 font-black">+20 Coins phần thưởng điểm danh</span> hôm nay!
+              Bé nhận được <span className="text-amber-600 font-black">+20 EXP phần thưởng điểm danh</span> hôm nay!
             </p>
 
             <button
@@ -523,8 +857,43 @@ export const UnitMap: React.FC<UnitMapProps> = ({
           </div>
         </div>
       )}
+
+      {/* 9. LOCKED BIOME / QUẢ CẦU TRI THỨC MODAL */}
+      {lockedBiomeNotice && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white border-4 border-slate-900 rounded-3xl p-6 max-w-md w-full text-center shadow-2xl space-y-4">
+            <div className="w-20 h-20 bg-amber-100 text-amber-600 border-3 border-slate-900 rounded-full flex items-center justify-center text-4xl mx-auto shadow-md animate-bounce">
+              🔒
+            </div>
+
+            <span className="inline-block px-3 py-1 bg-amber-100 border border-slate-900 rounded-full text-xs font-black text-amber-900">
+              Quả Cầu Tri Thức Đang Khóa
+            </span>
+
+            <h3 className="text-xl font-black text-slate-900">
+              Chưa Thể Mở Quả Cầu Tri Thức!
+            </h3>
+
+            <p className="text-xs font-bold text-slate-600 leading-relaxed">
+              Bé cần hoàn thành <strong className="text-emerald-700">100% tất cả các bài học</strong> trong thế giới <strong className="text-amber-800">{lockedBiomeNotice.biomeName}</strong> thì mới mở được Quả Cầu Tri Thức nhé!
+            </p>
+
+            <div className="p-3 bg-slate-100 border border-slate-300 rounded-2xl font-black text-xs text-slate-800 flex items-center justify-center gap-2">
+              <span>Tiến độ hiện tại:</span>
+              <span className="text-amber-700 font-black text-sm">
+                {lockedBiomeNotice.completedCount} / {lockedBiomeNotice.totalCount} bài học
+              </span>
+            </div>
+
+            <button
+              onClick={() => setLockedBiomeNotice(null)}
+              className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white border-3 border-slate-900 rounded-2xl font-black text-sm shadow-md cursor-pointer transition-transform hover:scale-102"
+            >
+              HIỂU RỒI, TỚ SẼ HỌC HẾT CÁC BÀI ➔
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-
-

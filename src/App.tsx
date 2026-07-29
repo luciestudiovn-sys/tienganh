@@ -124,7 +124,7 @@ export default function App() {
   const handleSavePronunciationScore = (wordId: string, score: number) => {
     setProgress((prev) => {
       const updatedScores = { ...prev.pronunciationScores, [wordId]: score };
-      const earnedXp = score >= 85 ? 35 : 15;
+      const earnedXp = score >= 90 ? 30 : score >= 75 ? 15 : 5;
 
       return {
         ...prev,
@@ -142,13 +142,14 @@ export default function App() {
     // 1. Update progress with rich calibrated XP reward
     // Target XP per unit = ~1200 - 1500 XP so 3 units + games + quizzes gives ~5,000 XP (5 Vouchers = 1 Gift!)
     setProgress((prev) => {
+      const isPassed = scorePercentage >= 70;
       const currentStars = prev.unitStars[unitId] || 0;
-      let newStars = 1;
+      let newStars = 0;
       if (scorePercentage >= 90) newStars = 3;
-      else if (scorePercentage >= 60) newStars = 2;
+      else if (scorePercentage >= 70) newStars = 2;
 
       const nextStarsMap = { ...prev.unitStars, [unitId]: Math.max(currentStars, newStars) };
-      const isNewUnit = !prev.completedUnits.includes(unitId);
+      const isNewUnit = isPassed && !prev.completedUnits.includes(unitId);
       const nextCompleted = isNewUnit
         ? [...prev.completedUnits, unitId]
         : prev.completedUnits;
@@ -287,6 +288,7 @@ export default function App() {
                 onOpenStudentProfile={() => setIsStudentProfileOpen(true)}
                 onSelectGrade={handleSelectGrade}
                 onStartSrsReview={() => setActiveTab('quiz')}
+                onAddXp={handleAddXp}
               />
             ) : (
               <UnitGuidedPath

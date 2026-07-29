@@ -303,11 +303,13 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
 }) => {
   const isUnitCompleted = (progress?.completedUnits || []).includes(unit.id);
   const [activeStep, setActiveStep] = useState<StepType>('vocab');
-  const [unlockedStepIndex, setUnlockedStepIndex] = useState<number>(isUnitCompleted ? 7 : 1); // 1 = vocab
+  const [unlockedStepIndex, setUnlockedStepIndex] = useState<number>(7); // Unlocked for free navigation
   const [lockedStepNotice, setLockedStepNotice] = useState<string | null>(null);
   const [storyRead, setStoryRead] = useState(false);
   const [listeningAnswer, setListeningAnswer] = useState<string | null>(null);
   const [listeningScore, setListeningScore] = useState<boolean | null>(null);
+  const [lastQuizScore, setLastQuizScore] = useState<number | null>(null);
+  const [isQuizPassed, setIsQuizPassed] = useState<boolean>(isUnitCompleted);
 
   // Rewards State
   const [rewardClaimed, setRewardClaimed] = useState(false);
@@ -317,11 +319,23 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
     (progress?.masteredWordIds || []).includes(v.id)
   ).length;
 
+  const handleQuizFinished = (unitId: number, scorePercentage: number, details?: any) => {
+    setLastQuizScore(scorePercentage);
+    if (scorePercentage >= 70) {
+      setIsQuizPassed(true);
+    }
+    onCompleteUnitQuiz(unitId, scorePercentage, details);
+  };
+
   const handleClaimReward = () => {
+    if (!isQuizPassed && !isUnitCompleted) {
+      playSoundEffect('wrong');
+      return;
+    }
     playSoundEffect('star');
     setRewardClaimed(true);
     // Mark unit as 100% completed & award stars & XP
-    onCompleteUnitQuiz(unit.id, 100);
+    onCompleteUnitQuiz(unit.id, Math.max(lastQuizScore || 100, 70));
     // Mark all vocabularies in this unit as mastered if not already
     unit.vocabularies.forEach((v) => {
       if (!(progress?.masteredWordIds || []).includes(v.id)) {
@@ -341,13 +355,13 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
   };
 
   const stepsList: { id: StepType; labelVi: string; icon: string; description: string }[] = [
-    { id: 'vocab', labelVi: '1. Từ Vựng Flashcard', icon: '📚', description: 'Học từ vựng & nghe âm thanh bản ngữ' },
-    { id: 'story', labelVi: '2. Mẫu Câu & Điền Từ', icon: '✍️', description: 'Điền từ còn thiếu vào mẫu câu & nghe đọc mẫu câu chuẩn' },
-    { id: 'pronunciation', labelVi: '3. Chấm Âm AI', icon: '🎤', description: 'Luyện nói & Mèo Miu chấm điểm phát âm' },
-    { id: 'game', labelVi: '4. Trò Chơi', icon: '🎮', description: 'Chơi mini game nối từ vui nhộn' },
-    { id: 'listening', labelVi: '5. Luyện Nghe', icon: '👂', description: 'Nghe giọng đọc & chọn tranh tương ứng' },
-    { id: 'quiz', labelVi: '6. Bài Tập Quiz', icon: '✍️', description: 'Làm bài tập trắc nghiệm củng cố' },
-    { id: 'reward', labelVi: '7. Nhận Thưởng', icon: '🏆', description: 'Mở khóa Huy hiệu & Nhận điểm XP' },
+    { id: 'vocab', labelVi: '1. Listen & Repeat (Từ vựng & Âm)', icon: '🎧', description: 'B1 & B2: Nghe, nhắc lại từ & Chỉ vào tranh và nói (Point & Say)' },
+    { id: 'story', labelVi: '2. Listen & Chant (Nhịp điệu & Mẫu câu)', icon: '🎵', description: 'B3 & B5: Đọc theo nhịp Chant & Tô chữ, điền từ vào câu' },
+    { id: 'listening', labelVi: '3. Listen & Tick (Luyện nghe hiểu)', icon: '👂', description: 'B4: Nghe giọng đọc chuẩn & Chọn tranh tương ứng' },
+    { id: 'pronunciation', labelVi: '4. Let\'s Talk (Luyện nói với AI)', icon: '🎤', description: 'B6 & B7: Nghe nhắc lại mẫu câu & Thực hành giao tiếp AI' },
+    { id: 'game', labelVi: '5. Fun Time (Trò chơi tương tác)', icon: '🎮', description: 'Hoạt động vui chơi, tìm từ, khoanh tròn & nối hình' },
+    { id: 'quiz', labelVi: '6. Bài Kiểm Tra Trắc Nghiệm Tổng Hợp', icon: '📝', description: 'B8: Bài kiểm tra trắc nghiệm hoàn thiện kiến thức bài học' },
+    { id: 'reward', labelVi: '7. Self-Check & Nhận Thưởng', icon: '🏆', description: 'Tự đánh giá, tổng kết kiến thức & nhận Huy hiệu XP' },
   ];
 
   const currentStepObj = stepsList.find((s) => s.id === activeStep) || stepsList[0];
@@ -695,21 +709,33 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
           </div>
         )}
 
-        {/* STEP 6: QUIZ & PRACTICE EXERCISES */}
+        {/* STEP 6: COMPREHENSIVE EVALUATION QUIZ */}
         {activeStep === 'quiz' && (
-          <div>
+          <div className="space-y-4">
+            <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 border-3 border-slate-900 rounded-2xl p-4 text-white text-center shadow-xs">
+              <div className="text-3xl mb-1 inline-block animate-bounce">📝</div>
+              <h4 className="text-lg font-black uppercase tracking-wide">
+                BÀI KIỂM TRA TRẮC NGHIỆM TỔNG HỢP: {unit.titleEn}
+              </h4>
+              <p className="text-xs font-bold text-purple-100 max-w-xl mx-auto leading-relaxed">
+                Bài kiểm tra đánh giá hoàn thiện kiến thức: Nghĩa từ vựng, Nhận biết âm thanh, Điền chữ cái còn thiếu & Sắp xếp câu hoàn chỉnh! 🎯
+              </p>
+            </div>
+
             <QuizModule
               units={[unit]}
               selectedUnit={unit}
-              onCompleteQuiz={onCompleteUnitQuiz}
+              completedUnits={[unit.id]}
+              onCompleteQuiz={handleQuizFinished}
+              onGoToMap={onBackToMap}
             />
 
-            <div className="text-center pt-6">
+            <div className="text-center pt-4">
               <button
                 onClick={handleNextStep}
                 className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white border-3 border-slate-900 rounded-2xl font-black text-sm shadow-2xs cursor-pointer inline-flex items-center gap-2"
               >
-                <span>Nhận Phần Thưởng & Huy Hiệu 🏆</span>
+                <span>Chuyển Sang Bước Nhận Thưởng & Đánh Giá ➔</span>
               </button>
             </div>
           </div>
@@ -718,46 +744,73 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
         {/* STEP 7: REWARD & DOPAMINE CELEBRATION */}
         {activeStep === 'reward' && (
           <div className="text-center space-y-6 py-4 max-w-lg mx-auto">
-            <div className="bg-gradient-to-b from-yellow-300 to-amber-400 border-4 border-slate-900 rounded-3xl p-6 shadow-lg space-y-4 relative overflow-hidden">
-              <div className="text-6xl animate-bounce">🏆</div>
-
-              <h3 className="text-2xl font-black text-slate-900">
-                CHÚC MỪNG BÉ HOÀN THÀNH {unit.titleEn}!
-              </h3>
-
-              <p className="text-xs font-bold text-slate-800">
-                Mèo Miu rất vui mừng! Bé đã chinh phục xuất sắc bài học hôm nay.
-              </p>
-
-              <div className="flex items-center justify-center gap-4 py-2">
-                <div className="bg-white border-2 border-slate-900 px-4 py-2 rounded-2xl font-black text-sm text-amber-700 shadow-2xs flex items-center gap-1.5">
-                  <Sparkles className="w-5 h-5 text-amber-500" />
-                  <span>+30 XP</span>
+            {!isQuizPassed && !isUnitCompleted ? (
+              <div className="bg-amber-100 border-4 border-slate-900 rounded-3xl p-6 text-center space-y-4 shadow-lg animate-in zoom-in-95">
+                <div className="w-16 h-16 bg-amber-200 text-amber-800 border-3 border-slate-900 rounded-full flex items-center justify-center text-4xl mx-auto animate-bounce">
+                  🔒
                 </div>
 
-                <div className="bg-white border-2 border-slate-900 px-4 py-2 rounded-2xl font-black text-sm text-yellow-600 shadow-2xs flex items-center gap-1.5">
-                  <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                  <span>+1 Ngôi Sao</span>
-                </div>
+                <span className="inline-block px-3 py-1 bg-amber-300 border border-slate-900 rounded-full text-xs font-black text-slate-900">
+                  Quả Cầu Tri Thức Bài Học Đang Khóa
+                </span>
 
-                <div className="bg-white border-2 border-slate-900 px-4 py-2 rounded-2xl font-black text-sm text-purple-700 shadow-2xs flex items-center gap-1.5">
-                  <span>🎁 Mũ {unit.iconEmoji}</span>
-                </div>
-              </div>
+                <h3 className="text-xl font-black text-slate-900">
+                  Cần Vượt Qua Bài Kiểm Tra Để Nhận Thưởng!
+                </h3>
 
-              {!rewardClaimed ? (
+                <p className="text-xs font-bold text-slate-700 leading-relaxed max-w-sm mx-auto">
+                  Bé chưa làm Bài Kiểm Tra Trắc Nghiệm Tổng Hợp (Bước 6) hoặc chưa đạt từ <strong className="text-amber-900">70% điểm trở lên</strong> {lastQuizScore !== null ? `(điểm vừa làm: ${lastQuizScore}%)` : '(chưa làm bài)'}. Hãy quay lại Bước 6 để làm bài kiểm tra và mở Quả Cầu Tri Thức nhé! 📝✨
+                </p>
+
                 <button
-                  onClick={handleClaimReward}
-                  className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 text-white border-3 border-slate-900 rounded-2xl font-black text-base shadow-md cursor-pointer transition-transform hover:scale-102"
+                  onClick={() => setActiveStep('quiz')}
+                  className="px-6 py-3.5 bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-sm border-3 border-slate-900 rounded-2xl shadow-md cursor-pointer inline-flex items-center gap-2 transition-transform hover:scale-102"
                 >
-                  NHẬN PHẦN THƯỞNG & LƯU TIẾN ĐỘ 🎁
+                  <span>LÀM BÀI KIỂM TRA (BƯỚC 6) NGAY ➔</span>
                 </button>
-              ) : (
-                <div className="p-3.5 bg-emerald-50 border-2 border-emerald-500 rounded-2xl font-black text-emerald-900 text-xs shadow-2xs">
-                  🎉 Hoàn thành bài học! Đã ghi nhận 3 sao & lưu tiến độ vào hồ sơ bé thành công!
+              </div>
+            ) : (
+              <div className="bg-gradient-to-b from-yellow-300 to-amber-400 border-4 border-slate-900 rounded-3xl p-6 shadow-lg space-y-4 relative overflow-hidden">
+                <div className="text-6xl animate-bounce">🏆</div>
+
+                <h3 className="text-2xl font-black text-slate-900">
+                  CHÚC MỪNG BÉ HOÀN THÀNH {unit.titleEn}!
+                </h3>
+
+                <p className="text-xs font-bold text-slate-800">
+                  Mèo Miu rất vui mừng! Bé đã chinh phục xuất sắc bài học hôm nay.
+                </p>
+
+                <div className="flex items-center justify-center gap-4 py-2">
+                  <div className="bg-white border-2 border-slate-900 px-4 py-2 rounded-2xl font-black text-sm text-amber-700 shadow-2xs flex items-center gap-1.5">
+                    <Sparkles className="w-5 h-5 text-amber-500" />
+                    <span>+{lastQuizScore ? Math.round((lastQuizScore / 100) * 300) : 300} EXP</span>
+                  </div>
+
+                  <div className="bg-white border-2 border-slate-900 px-4 py-2 rounded-2xl font-black text-sm text-yellow-600 shadow-2xs flex items-center gap-1.5">
+                    <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                    <span>+3 Ngôi Sao</span>
+                  </div>
+
+                  <div className="bg-white border-2 border-slate-900 px-4 py-2 rounded-2xl font-black text-sm text-purple-700 shadow-2xs flex items-center gap-1.5">
+                    <span>🎁 Huy hiệu {unit.iconEmoji}</span>
+                  </div>
                 </div>
-              )}
-            </div>
+
+                {!rewardClaimed ? (
+                  <button
+                    onClick={handleClaimReward}
+                    className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 text-white border-3 border-slate-900 rounded-2xl font-black text-base shadow-md cursor-pointer transition-transform hover:scale-102"
+                  >
+                    NHẬN PHẦN THƯỞNG & LƯU TIẾN ĐỘ 🎁
+                  </button>
+                ) : (
+                  <div className="p-3.5 bg-emerald-50 border-2 border-emerald-500 rounded-2xl font-black text-emerald-900 text-xs shadow-2xs">
+                    🎉 Hoàn thành bài học! Đã ghi nhận 3 sao & lưu tiến độ vào hồ sơ bé thành công!
+                  </div>
+                )}
+              </div>
+            )}
 
             <button
               onClick={onBackToMap}

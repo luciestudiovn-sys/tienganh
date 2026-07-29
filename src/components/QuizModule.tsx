@@ -26,8 +26,8 @@ export const QuizModule: React.FC<QuizModuleProps> = ({
   const safeCompletedUnits = completedUnits || [];
   const safeUnits = units || [];
 
-  // Available units that have been completed, or fallback
-  const isUnlocked = safeCompletedUnits.length > 0;
+  // Available units - always unlocked so student can test any unit
+  const isUnlocked = true;
   
   const completedUnitList = safeUnits.filter((u) => safeCompletedUnits.includes(u.id));
   const defaultUnitId = selectedUnit
@@ -545,20 +545,48 @@ export const QuizModule: React.FC<QuizModuleProps> = ({
       ) : isFinished ? (
         /* Quiz Finished Summary */
         <div className="bg-white rounded-3xl border-4 border-amber-300 shadow-xl p-8 text-center space-y-4">
-          <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-amber-400 to-orange-400 flex items-center justify-center text-4xl shadow-lg animate-bounce">
-            🏆
-          </div>
-          <h3 className="text-2xl font-black text-slate-800 mb-1">Hoàn Thành Bài Tập Quiz!</h3>
-          <p className="text-xs text-slate-500">{currentUnit.titleEn}</p>
+          {Math.round((score / questions.length) * 100) >= 70 ? (
+            <>
+              <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-amber-400 to-orange-400 flex items-center justify-center text-4xl shadow-lg animate-bounce">
+                🏆
+              </div>
+              <h3 className="text-2xl font-black text-slate-800 mb-1">
+                Xuất Sắc! Đạt Cột Mốc Quả Cầu Tri Thức! 🎉
+              </h3>
+              <p className="text-xs text-slate-500 font-bold">{currentUnit.titleEn}</p>
 
-          <div className="bg-amber-50 rounded-2xl p-5 border border-amber-200 space-y-2">
-            <div className="text-4xl font-black text-amber-600">
-              {score} / {questions.length} Câu Đúng
-            </div>
-            <p className="text-xs font-black text-emerald-800">
-              🎉 Bé nhận được <strong>+{Math.round((score / questions.length) * 150) + 50} XP</strong> tích lũy đổi quà!
-            </p>
-          </div>
+              <div className="bg-emerald-50 rounded-2xl p-5 border-2 border-emerald-300 space-y-2">
+                <div className="text-4xl font-black text-emerald-700">
+                  {score} / {questions.length} Câu Đúng ({Math.round((score / questions.length) * 100)}%)
+                </div>
+                <p className="text-xs font-black text-emerald-900">
+                  ✅ Bé đã vượt qua thử thách 70% điểm & Đã Mở Khóa Quả Cầu Tri Thức thành công!
+                </p>
+                <p className="text-xs font-bold text-amber-800">
+                  🎁 Thưởng thêm <strong>+{Math.round((score / questions.length) * 200) + 100} EXP</strong> vào tài khoản!
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="w-20 h-20 mx-auto rounded-full bg-amber-100 border-2 border-amber-400 flex items-center justify-center text-4xl shadow-lg animate-bounce">
+                🎯
+              </div>
+              <h3 className="text-2xl font-black text-slate-800 mb-1">
+                Cố Lên Bé Ơi! Cần Thêm Một Chút Nữa 💪
+              </h3>
+              <p className="text-xs text-slate-500 font-bold">{currentUnit.titleEn}</p>
+
+              <div className="bg-amber-50 rounded-2xl p-5 border-2 border-amber-300 space-y-2">
+                <div className="text-4xl font-black text-amber-700">
+                  {score} / {questions.length} Câu Đúng ({Math.round((score / questions.length) * 100)}%)
+                </div>
+                <p className="text-xs font-bold text-amber-900 leading-relaxed">
+                  ⚠️ Cần đạt từ <strong>70% trở lên</strong> để mở Quả Cầu Tri Thức & Nhận Huy Hiệu bài học. Bé hãy bấm nút phía dưới làm lại để đạt điểm cao hơn nhé!
+                </p>
+              </div>
+            </>
+          )}
 
           <button
             onClick={() => {
@@ -568,9 +596,9 @@ export const QuizModule: React.FC<QuizModuleProps> = ({
               setScore(0);
               setIsFinished(false);
             }}
-            className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-2xl cursor-pointer shadow-md transition-all"
+            className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-2xl cursor-pointer shadow-md transition-all text-sm"
           >
-            Luyện Tập Lại Bài Này
+            🔄 Luyện Tập Lại Bài Này Ngay
           </button>
         </div>
       ) : null}
