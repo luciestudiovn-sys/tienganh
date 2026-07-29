@@ -19,6 +19,11 @@ interface ProgressTrackerModuleProps {
 }
 
 export const ProgressTrackerModule: React.FC<ProgressTrackerModuleProps> = ({ progress }) => {
+  const masteredWordIds = progress?.masteredWordIds || [];
+  const completedUnits = progress?.completedUnits || [];
+  const pronunciationScores = progress?.pronunciationScores || {};
+  const badges = progress?.badges || [];
+
   // Sample weekly activity data
   const weeklyData = [
     { day: 'T2', minutes: 12, words: 4 },
@@ -27,21 +32,21 @@ export const ProgressTrackerModule: React.FC<ProgressTrackerModuleProps> = ({ pr
     { day: 'T5', minutes: 20, words: 8 },
     { day: 'T6', minutes: 18, words: 7 },
     { day: 'T7', minutes: 25, words: 10 },
-    { day: 'CN', minutes: progress.todayMinutesSpent || 18, words: progress.masteredWordIds.length || 12 },
+    { day: 'CN', minutes: progress?.todayMinutesSpent || 18, words: masteredWordIds.length || 12 },
   ];
 
   // Calculate average pronunciation score
-  const pronScores = Object.values(progress.pronunciationScores) as number[];
+  const pronScores = Object.values(pronunciationScores) as number[];
   const avgPronScore =
     pronScores.length > 0
       ? Math.round(pronScores.reduce((a: number, b: number) => a + b, 0) / pronScores.length)
       : 91;
 
   // Skill percentages calculation
-  const vocabSkillPercent = Math.min(100, Math.max(30, (progress.masteredWordIds.length / 20) * 100));
+  const vocabSkillPercent = Math.min(100, Math.max(30, (masteredWordIds.length / 20) * 100));
   const listeningSkillPercent = 70;
   const speakingSkillPercent = Math.min(100, avgPronScore);
-  const grammarSkillPercent = Math.min(100, (progress.completedUnits.length / 16) * 100 || 40);
+  const grammarSkillPercent = Math.min(100, (completedUnits.length / 16) * 100 || 40);
 
   return (
     <div className="max-w-4xl mx-auto py-4 space-y-6">
@@ -169,7 +174,7 @@ export const ProgressTrackerModule: React.FC<ProgressTrackerModuleProps> = ({ pr
             📚
           </div>
           <div>
-            <div className="text-2xl font-black text-slate-900">{progress.masteredWordIds.length}</div>
+            <div className="text-2xl font-black text-slate-900">{masteredWordIds.length}</div>
             <div className="text-[11px] text-slate-600 font-black">Từ đã thuộc lòng</div>
           </div>
         </div>
@@ -234,7 +239,7 @@ export const ProgressTrackerModule: React.FC<ProgressTrackerModuleProps> = ({ pr
             <span>Bộ Huy Hiệu Đã Đạt Được</span>
           </h3>
           <span className="text-xs font-black text-blue-900 bg-blue-100 border-2 border-blue-300 px-3 py-1 rounded-full">
-            {INITIAL_BADGES.filter((b) => progress.badges.includes(b.id)).length} / {INITIAL_BADGES.length} Huy Hiệu
+            {INITIAL_BADGES.filter((b) => badges.includes(b.id)).length} / {INITIAL_BADGES.length} Huy Hiệu
           </span>
         </div>
 

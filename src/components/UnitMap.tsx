@@ -45,12 +45,29 @@ export const UnitMap: React.FC<UnitMapProps> = ({
   const [claimedReward, setClaimedReward] = useState(false);
   const [showRewardModal, setShowRewardModal] = useState(false);
 
+  // Safe fallbacks for progress arrays
+  const completedUnits = progress?.completedUnits || [];
+  const masteredWordIds = progress?.masteredWordIds || [];
+  const hardWordIds = progress?.hardWordIds || [];
+  const safeUnits = units || [];
+
   // Determine current unit to continue
-  const nextIncompleteUnit = units.find((u) => !progress.completedUnits.includes(u.id)) || units[0];
-  const completedCount = units.filter((u) => progress.completedUnits.includes(u.id)).length;
-  const vocabCount = nextIncompleteUnit.vocabularies.length;
-  const masteredInCurrent = nextIncompleteUnit.vocabularies.filter((v) =>
-    progress.masteredWordIds.includes(v.id)
+  const nextIncompleteUnit = safeUnits.find((u) => !completedUnits.includes(u.id)) || safeUnits[0] || {
+    id: 1,
+    titleEn: 'Unit 1',
+    titleVi: 'Bài 1',
+    letterFocus: 'A',
+    description: '',
+    themeColor: 'bg-amber-400',
+    iconEmoji: '🎒',
+    vocabularies: [],
+    quizzes: [],
+  };
+  const completedCount = safeUnits.filter((u) => completedUnits.includes(u.id)).length;
+  const nextVocabs = nextIncompleteUnit.vocabularies || [];
+  const vocabCount = nextVocabs.length;
+  const masteredInCurrent = nextVocabs.filter((v) =>
+    masteredWordIds.includes(v.id)
   ).length;
 
   const currentTheme = LAND_THEMES[nextIncompleteUnit.id] || {
@@ -202,7 +219,7 @@ export const UnitMap: React.FC<UnitMapProps> = ({
       </div>
 
       {/* 3. SRS Quick Review Notification */}
-      {onStartSrsReview && progress.hardWordIds.length > 0 && (
+      {onStartSrsReview && hardWordIds.length > 0 && (
         <div className="bg-rose-50 border-3 border-rose-400 rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-2xs">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center font-black text-lg shadow-2xs shrink-0">
@@ -210,7 +227,7 @@ export const UnitMap: React.FC<UnitMapProps> = ({
             </div>
             <div>
               <h4 className="text-xs sm:text-sm font-black text-slate-900">
-                Cần ôn lại {progress.hardWordIds.length} từ vựng chưa thuộc
+                Cần ôn lại {hardWordIds.length} từ vựng chưa thuộc
               </h4>
               <p className="text-[11px] font-bold text-slate-500">
                 Ôn tập nhanh 3 phút bằng thuật toán lặp lại ngắt quãng (SRS)!
@@ -378,12 +395,13 @@ export const UnitMap: React.FC<UnitMapProps> = ({
       ) : (
         /* 6. LIST VIEW (ALL UNIT CARDS GRID) */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {units.map((unit) => {
-            const isCompleted = progress.completedUnits.includes(unit.id);
-            const stars = progress.unitStars[unit.id] || 0;
-            const vCount = unit.vocabularies.length;
-            const masteredCount = unit.vocabularies.filter((v) =>
-              progress.masteredWordIds.includes(v.id)
+          {safeUnits.map((unit) => {
+            const isCompleted = completedUnits.includes(unit.id);
+            const stars = (progress?.unitStars || {})[unit.id] || 0;
+            const unitVocabs = unit.vocabularies || [];
+            const vCount = unitVocabs.length;
+            const masteredCount = unitVocabs.filter((v) =>
+              masteredWordIds.includes(v.id)
             ).length;
             const theme = LAND_THEMES[unit.id] || { name: unit.titleEn, emoji: '🗺️' };
 

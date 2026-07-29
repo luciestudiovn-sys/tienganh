@@ -256,9 +256,19 @@ const BubblePopGame: React.FC<{ vocabularies: VocabularyItem[]; onAddXp: (amt: n
   vocabularies,
   onAddXp,
 }) => {
+  const TOTAL_ROUNDS = 5;
   const [targetVocab, setTargetVocab] = React.useState<VocabularyItem | null>(null);
   const [options, setOptions] = React.useState<VocabularyItem[]>([]);
+  const [round, setRound] = React.useState(1);
   const [poppedCount, setPoppedCount] = React.useState(0);
+  const [isFinished, setIsFinished] = React.useState(false);
+
+  const initGame = () => {
+    setRound(1);
+    setPoppedCount(0);
+    setIsFinished(false);
+    setupRound();
+  };
 
   const setupRound = () => {
     if (!vocabularies || vocabularies.length === 0) return;
@@ -272,19 +282,28 @@ const BubblePopGame: React.FC<{ vocabularies: VocabularyItem[]; onAddXp: (amt: n
   };
 
   React.useEffect(() => {
-    setupRound();
-  }, []);
+    initGame();
+  }, [vocabularies]);
 
   const handlePopBubble = (v: VocabularyItem) => {
-    if (!targetVocab) return;
+    if (!targetVocab || isFinished) return;
 
     if (v.id === targetVocab.id) {
       playSoundEffect('pop');
       onAddXp(10);
-      setPoppedCount((prev) => prev + 1);
-      setTimeout(() => {
-        setupRound();
-      }, 600);
+      const nextPopped = poppedCount + 1;
+      setPoppedCount(nextPopped);
+
+      if (round >= TOTAL_ROUNDS) {
+        setIsFinished(true);
+        playSoundEffect('fanfare');
+        confetti({ particleCount: 80, spread: 80, origin: { y: 0.6 } });
+      } else {
+        setRound((prev) => prev + 1);
+        setTimeout(() => {
+          setupRound();
+        }, 600);
+      }
     } else {
       playSoundEffect('wrong');
     }
@@ -292,29 +311,55 @@ const BubblePopGame: React.FC<{ vocabularies: VocabularyItem[]; onAddXp: (amt: n
 
   return (
     <div className="bg-white rounded-3xl border-4 border-blue-200 shadow-xl p-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-xl font-black text-slate-800">Game: Bong Bóng Từ Vựng</h3>
+          <h3 className="text-xl font-black text-slate-800">Game: Bong Bóng Từ Vựng 🎈</h3>
           <p className="text-xs text-slate-500">Nghe phát âm và bấm vỡ đúng bong bóng từ vựng!</p>
         </div>
-        <div className="flex items-center gap-1 bg-blue-100 text-blue-900 px-3 py-1.5 rounded-2xl font-black text-xs">
-          <Trophy className="w-4 h-4 text-amber-500" />
-          <span>Điểm: {poppedCount * 10} XP</span>
+        <div className="flex items-center gap-2">
+          <span className="bg-blue-100 text-blue-900 border border-blue-300 px-3 py-1 rounded-full font-black text-xs">
+            Lượt {Math.min(round, TOTAL_ROUNDS)} / {TOTAL_ROUNDS}
+          </span>
+          <button
+            onClick={initGame}
+            className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-1 cursor-pointer"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Chơi Lại</span>
+          </button>
         </div>
       </div>
 
-      {targetVocab && (
+      {isFinished ? (
+        <div className="bg-gradient-to-b from-sky-50 to-blue-100 border-3 border-blue-400 p-8 rounded-3xl text-center space-y-4 my-4 animate-in zoom-in-95">
+          <div className="text-6xl animate-bounce">🎈🎉</div>
+          <h4 className="font-black text-slate-900 text-2xl">Bé Đã Hoàn Thành Trò Chơi!</h4>
+          <p className="text-sm font-bold text-blue-800">
+            Bé đã nổ vỡ thành công {poppedCount}/{TOTAL_ROUNDS} bong bóng và tích lũy được{' '}
+            <span className="text-amber-600 font-black">+{poppedCount * 10} XP</span>!
+          </p>
+          <div className="flex justify-center gap-3 pt-2">
+            <button
+              onClick={initGame}
+              className="px-6 py-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-sm rounded-2xl border-2 border-slate-900 shadow-2xs cursor-pointer flex items-center gap-2"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Chơi Lại Vòng Mới</span>
+            </button>
+          </div>
+        </div>
+      ) : targetVocab ? (
         <div className="text-center my-4">
-          <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl max-w-sm mx-auto mb-6">
+          <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl max-w-sm mx-auto mb-6 shadow-2xs">
             <button
               onClick={() => speakText(targetVocab.word)}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-extrabold text-sm shadow-md cursor-pointer transition-transform active:scale-95"
             >
               <Volume2 className="w-5 h-5" />
-              <span>Nghe Âm Thanh</span>
+              <span>Nghe Phát Âm</span>
             </button>
-            <p className="text-xs text-slate-500 font-medium mt-2">
-              Gợi ý: {targetVocab.vietnamese}
+            <p className="text-xs text-slate-600 font-black mt-2">
+              Gợi ý nghĩa: {targetVocab.vietnamese}
             </p>
           </div>
 
@@ -331,7 +376,7 @@ const BubblePopGame: React.FC<{ vocabularies: VocabularyItem[]; onAddXp: (amt: n
             ))}
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 };

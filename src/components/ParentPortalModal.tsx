@@ -103,7 +103,7 @@ export const ParentPortalModal: React.FC<ParentPortalModalProps> = ({
                   </div>
                   <div className="p-2.5 bg-white rounded-xl border border-slate-200">
                     <span className="text-slate-500 font-medium">Số từ vựng đã thành thạo:</span>
-                    <div className="font-extrabold text-emerald-600 text-sm mt-0.5">{progress.masteredWordIds.length} Từ</div>
+                    <div className="font-extrabold text-emerald-600 text-sm mt-0.5">{(progress.masteredWordIds || []).length} Từ</div>
                   </div>
                 </div>
               </div>

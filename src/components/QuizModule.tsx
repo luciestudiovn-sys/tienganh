@@ -23,15 +23,18 @@ export const QuizModule: React.FC<QuizModuleProps> = ({
   onCompleteQuiz,
   onGoToMap,
 }) => {
+  const safeCompletedUnits = completedUnits || [];
+  const safeUnits = units || [];
+
   // Available units that have been completed, or fallback
-  const isUnlocked = completedUnits.length > 0;
+  const isUnlocked = safeCompletedUnits.length > 0;
   
-  const completedUnitList = units.filter((u) => completedUnits.includes(u.id));
+  const completedUnitList = safeUnits.filter((u) => safeCompletedUnits.includes(u.id));
   const defaultUnitId = selectedUnit
     ? selectedUnit.id
     : completedUnitList.length > 0
     ? completedUnitList[0].id
-    : units[0].id;
+    : safeUnits[0]?.id || 1;
 
   const [activeUnitId, setActiveUnitId] = useState<number>(defaultUnitId);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -332,11 +335,14 @@ export const QuizModule: React.FC<QuizModuleProps> = ({
             onChange={(e) => setActiveUnitId(Number(e.target.value))}
             className="bg-amber-50 border-2 border-amber-300 font-black text-xs text-amber-900 rounded-xl px-3 py-2 cursor-pointer outline-none focus:ring-2 focus:ring-amber-400"
           >
-            {completedUnitList.map((u) => (
-              <option key={u.id} value={u.id}>
-                ✅ {u.titleEn} ({u.titleVi})
-              </option>
-            ))}
+            {safeUnits.map((u) => {
+              const isCompleted = safeCompletedUnits.includes(u.id);
+              return (
+                <option key={u.id} value={u.id}>
+                  {isCompleted ? '✅' : '📖'} {u.titleEn} ({u.titleVi})
+                </option>
+              );
+            })}
           </select>
         </div>
 

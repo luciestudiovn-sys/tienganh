@@ -21,19 +21,23 @@ export const NotebookModule: React.FC<NotebookModuleProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'mastered'>('all');
 
+  const safeVocab = vocabularies || [];
+  const safeMasteredIds = masteredWordIds || [];
+  const safeHardIds = hardWordIds || [];
+
   // Filtered vocabulary list
-  const filteredVocabularies = vocabularies.filter((v) => {
+  const filteredVocabularies = safeVocab.filter((v) => {
     const matchesSearch =
       v.word.toLowerCase().includes(searchQuery.toLowerCase()) ||
       v.vietnamese.toLowerCase().includes(searchQuery.toLowerCase());
 
     if (filterType === 'mastered') {
-      return matchesSearch && masteredWordIds.includes(v.id);
+      return matchesSearch && safeMasteredIds.includes(v.id);
     }
     return matchesSearch;
   });
 
-  const masteredCount = vocabularies.filter((v) => masteredWordIds.includes(v.id)).length;
+  const masteredCount = safeVocab.filter((v) => safeMasteredIds.includes(v.id)).length;
 
   return (
     <div className="max-w-4xl mx-auto py-4 space-y-6">
@@ -53,7 +57,7 @@ export const NotebookModule: React.FC<NotebookModuleProps> = ({
 
         <div className="flex gap-2 shrink-0">
           <div className="bg-white/20 border border-white/40 px-4 py-2 rounded-2xl text-center">
-            <div className="text-2xl font-black">{vocabularies.length}</div>
+            <div className="text-2xl font-black">{safeVocab.length}</div>
             <div className="text-[10px] font-bold text-blue-100">Tổng từ vựng</div>
           </div>
           <div className="bg-emerald-500/90 border border-emerald-300 px-4 py-2 rounded-2xl text-center">
@@ -87,7 +91,7 @@ export const NotebookModule: React.FC<NotebookModuleProps> = ({
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            Tất Cả ({vocabularies.length})
+            Tất Cả ({safeVocab.length})
           </button>
           <button
             onClick={() => setFilterType('mastered')}

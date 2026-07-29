@@ -39,6 +39,16 @@ export const loadUserProgress = (): UserProgress => {
     if (!parsed.studentAvatar) parsed.studentAvatar = '🐱';
     if (parsed.vouchers === undefined) parsed.vouchers = 1;
     if (!parsed.claimedGifts) parsed.claimedGifts = [];
+    if (!parsed.completedUnits) parsed.completedUnits = [];
+    if (!parsed.masteredWordIds) parsed.masteredWordIds = ['u1-1', 'u1-2'];
+    if (!parsed.hardWordIds) parsed.hardWordIds = ['u1-3'];
+    if (!parsed.unitStars) parsed.unitStars = { 1: 3 };
+    if (!parsed.pronunciationScores) parsed.pronunciationScores = { 'u1-1': 92, 'u1-2': 98 };
+    if (!parsed.badges) parsed.badges = ['badge-first-step'];
+    if (parsed.xp === undefined) parsed.xp = 450;
+    if (parsed.streakDays === undefined) parsed.streakDays = 1;
+    if (parsed.dailyGoalMinutes === undefined) parsed.dailyGoalMinutes = 15;
+    if (parsed.todayMinutesSpent === undefined) parsed.todayMinutesSpent = 8;
     const todayStr = new Date().toISOString().split('T')[0];
 
     // Check streak logic

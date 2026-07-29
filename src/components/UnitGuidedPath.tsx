@@ -301,8 +301,10 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
   onOpenPronunciationCoach,
   onCompleteUnitQuiz,
 }) => {
+  const isUnitCompleted = (progress?.completedUnits || []).includes(unit.id);
   const [activeStep, setActiveStep] = useState<StepType>('vocab');
-  const [unlockedStepIndex, setUnlockedStepIndex] = useState<number>(1); // 1 = vocab
+  const [unlockedStepIndex, setUnlockedStepIndex] = useState<number>(isUnitCompleted ? 7 : 1); // 1 = vocab
+  const [lockedStepNotice, setLockedStepNotice] = useState<string | null>(null);
   const [storyRead, setStoryRead] = useState(false);
   const [listeningAnswer, setListeningAnswer] = useState<string | null>(null);
   const [listeningScore, setListeningScore] = useState<boolean | null>(null);
@@ -312,7 +314,7 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
 
   const totalUnitVocabs = unit.vocabularies.length;
   const unitVocabMasteredCount = unit.vocabularies.filter((v) =>
-    progress.masteredWordIds.includes(v.id)
+    (progress?.masteredWordIds || []).includes(v.id)
   ).length;
 
   const handleClaimReward = () => {
@@ -322,7 +324,7 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
     onCompleteUnitQuiz(unit.id, 100);
     // Mark all vocabularies in this unit as mastered if not already
     unit.vocabularies.forEach((v) => {
-      if (!progress.masteredWordIds.includes(v.id)) {
+      if (!(progress?.masteredWordIds || []).includes(v.id)) {
         onToggleMastered(v.id);
       }
     });
@@ -331,7 +333,7 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
   const handleNextFromVocab = () => {
     // Mark all vocabularies of this unit as mastered
     unit.vocabularies.forEach((v) => {
-      if (!progress.masteredWordIds.includes(v.id)) {
+      if (!(progress?.masteredWordIds || []).includes(v.id)) {
         onToggleMastered(v.id);
       }
     });
@@ -767,6 +769,29 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
           </div>
         )}
       </div>
+
+      {/* Locked Step Notice Modal */}
+      {lockedStepNotice && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl border-4 border-slate-900 p-6 max-w-sm w-full text-center shadow-2xl space-y-4">
+            <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto text-3xl border-2 border-amber-300 animate-bounce">
+              🔒
+            </div>
+            <h3 className="text-lg font-black text-slate-900">
+              Phần Học Chưa Mở Khóa!
+            </h3>
+            <p className="text-xs font-bold text-slate-600 leading-relaxed">
+              Bé cần học xong các phần trước theo thứ tự thì mới mở được <span className="text-amber-800 font-black">"{lockedStepNotice}"</span> nhé!
+            </p>
+            <button
+              onClick={() => setLockedStepNotice(null)}
+              className="w-full py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded-xl border-2 border-slate-900 shadow-2xs cursor-pointer"
+            >
+              Đã Hiểu, Bé Sẽ Học Tiếp! 🚀
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
