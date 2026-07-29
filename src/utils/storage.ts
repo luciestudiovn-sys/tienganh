@@ -8,7 +8,9 @@ export const getDefaultProgress = (): UserProgress => {
     selectedGrade: 2,
     studentName: 'Bé Bún',
     studentAvatar: '🐱',
-    xp: 120,
+    xp: 450,
+    vouchers: 1, // Start with 1 bonus Phiếu Chăm Học to encourage kids
+    claimedGifts: [],
     streakDays: 1,
     lastStudyDate: todayStr,
     completedUnits: [],
@@ -35,6 +37,8 @@ export const loadUserProgress = (): UserProgress => {
     if (!parsed.selectedGrade) parsed.selectedGrade = 2;
     if (!parsed.studentName) parsed.studentName = 'Bé Bún';
     if (!parsed.studentAvatar) parsed.studentAvatar = '🐱';
+    if (parsed.vouchers === undefined) parsed.vouchers = 1;
+    if (!parsed.claimedGifts) parsed.claimedGifts = [];
     const todayStr = new Date().toISOString().split('T')[0];
 
     // Check streak logic

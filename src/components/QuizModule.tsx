@@ -2,20 +2,38 @@ import React, { useState } from 'react';
 import { QuizQuestion, UnitData } from '../types';
 import { speakText, playSoundEffect } from '../utils/sound';
 import confetti from 'canvas-confetti';
-import { Volume2, CheckCircle2, HelpCircle, Sparkles, RefreshCw, Trophy, ArrowRight, Check, X } from 'lucide-react';
+import { Volume2, CheckCircle2, HelpCircle, Sparkles, RefreshCw, Trophy, ArrowRight, Check, X, Lock, Play } from 'lucide-react';
 
 interface QuizModuleProps {
   units: UnitData[];
   selectedUnit: UnitData | null;
+  completedUnits: number[];
   onCompleteQuiz: (
     unitId: number,
     scorePercentage: number,
     details?: { quizTimeSeconds: number; correctAnswers: number; totalQuestions: number }
   ) => void;
+  onGoToMap: () => void;
 }
 
-export const QuizModule: React.FC<QuizModuleProps> = ({ units, selectedUnit, onCompleteQuiz }) => {
-  const [activeUnitId, setActiveUnitId] = useState<number>(selectedUnit ? selectedUnit.id : 1);
+export const QuizModule: React.FC<QuizModuleProps> = ({
+  units,
+  selectedUnit,
+  completedUnits,
+  onCompleteQuiz,
+  onGoToMap,
+}) => {
+  // Available units that have been completed, or fallback
+  const isUnlocked = completedUnits.length > 0;
+  
+  const completedUnitList = units.filter((u) => completedUnits.includes(u.id));
+  const defaultUnitId = selectedUnit
+    ? selectedUnit.id
+    : completedUnitList.length > 0
+    ? completedUnitList[0].id
+    : units[0].id;
+
+  const [activeUnitId, setActiveUnitId] = useState<number>(defaultUnitId);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -112,7 +130,6 @@ export const QuizModule: React.FC<QuizModuleProps> = ({ units, selectedUnit, onC
     });
 
     const shuffledExtra = extraQuizzes.sort(() => 0.5 - Math.random());
-    // Combine base + extra to make at least 6 questions total
     const needed = Math.max(0, 6 - baseQuizzes.length);
     return [...baseQuizzes, ...shuffledExtra.slice(0, needed + 2)].slice(0, 6);
   };
@@ -121,12 +138,14 @@ export const QuizModule: React.FC<QuizModuleProps> = ({ units, selectedUnit, onC
   React.useEffect(() => {
     if (selectedUnit) {
       setActiveUnitId(selectedUnit.id);
+    } else if (completedUnitList.length > 0) {
+      setActiveUnitId(completedUnitList[0].id);
     }
   }, [selectedUnit]);
 
   // Initialize questions
   React.useEffect(() => {
-    if (currentUnit) {
+    if (currentUnit && isUnlocked) {
       setQuestions(buildQuizSetForUnit(currentUnit));
       setCurrentIndex(0);
       setSelectedAnswer(null);
@@ -135,12 +154,41 @@ export const QuizModule: React.FC<QuizModuleProps> = ({ units, selectedUnit, onC
       setIsFinished(false);
       setQuizStartTime(Date.now());
     }
-  }, [activeUnitId]);
+  }, [activeUnitId, isUnlocked]);
+
+  // If Quiz is locked because no unit is completed
+  if (!isUnlocked) {
+    return (
+      <div className="max-w-xl mx-auto py-8">
+        <div className="bg-white rounded-3xl border-4 border-slate-900 p-8 text-center shadow-xl space-y-4">
+          <div className="w-20 h-20 mx-auto rounded-3xl bg-amber-100 border-3 border-slate-900 flex items-center justify-center text-4xl shadow-2xs">
+            🔒
+          </div>
+          <span className="inline-block px-3 py-1 bg-amber-100 border border-slate-900 rounded-full text-xs font-black text-amber-900">
+            Chế Độ Bài Tập Quiz Chưa Mở Khóa
+          </span>
+          <h2 className="text-2xl font-black text-slate-900">
+            Hoàn Thành Bài Học Để Mở Bài Tập Ôn!
+          </h2>
+          <p className="text-xs font-bold text-slate-600 leading-relaxed max-w-md mx-auto">
+            Góc bài tập Quiz giúp bé ôn luyện các từ vựng và câu hỏi của từng bài đã học. Hãy vào <strong>Bản Đồ Bài Học</strong> và hoàn thành ít nhất 1 bài đầu tiên để mở khóa phần này nhé! 🎒✨
+          </p>
+          <button
+            onClick={onGoToMap}
+            className="px-6 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-sm border-3 border-slate-900 rounded-2xl shadow-md cursor-pointer transition-transform hover:scale-105 inline-flex items-center gap-2"
+          >
+            <Play className="w-4 h-4 fill-current" />
+            <span>ĐẾN BẢN ĐỒ BÀI HỌC NGAY ➔</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const currentQ = questions[currentIndex];
 
   const handleSelectOption = (opt: string) => {
-    if (selectedAnswer !== null) return; // already answered
+    if (selectedAnswer !== null) return;
     setSelectedAnswer(opt);
 
     const isCorrect = opt.trim().toLowerCase() === currentQ.correctAnswer.trim().toLowerCase();
@@ -231,24 +279,26 @@ export const QuizModule: React.FC<QuizModuleProps> = ({ units, selectedUnit, onC
   return (
     <div className="max-w-2xl mx-auto py-4">
       {/* Unit Selector */}
-      <div className="bg-white rounded-2xl p-4 border border-amber-200 shadow-xs mb-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <label className="text-xs font-bold text-slate-700">Chọn Bài Học Luyện Tập:</label>
-        <select
-          value={activeUnitId}
-          onChange={(e) => setActiveUnitId(Number(e.target.value))}
-          className="bg-amber-50 border border-amber-300 font-bold text-xs text-amber-900 rounded-xl px-3 py-2 cursor-pointer outline-none focus:ring-2 focus:ring-amber-400"
-        >
-          {units.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.titleEn} ({u.titleVi})
-            </option>
-          ))}
-        </select>
+      <div className="bg-white rounded-2xl p-4 border-3 border-amber-300 shadow-xs mb-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-black text-slate-800">Chọn Bài Ôn Tập:</label>
+          <select
+            value={activeUnitId}
+            onChange={(e) => setActiveUnitId(Number(e.target.value))}
+            className="bg-amber-50 border-2 border-amber-300 font-black text-xs text-amber-900 rounded-xl px-3 py-2 cursor-pointer outline-none focus:ring-2 focus:ring-amber-400"
+          >
+            {completedUnitList.map((u) => (
+              <option key={u.id} value={u.id}>
+                ✅ {u.titleEn} ({u.titleVi})
+              </option>
+            ))}
+          </select>
+        </div>
 
         <button
           onClick={generateAiQuiz}
           disabled={isAiLoading}
-          className="px-3.5 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
+          className="px-3.5 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-black text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
         >
           {isAiLoading ? (
             <RefreshCw className="w-4 h-4 animate-spin" />
@@ -261,11 +311,11 @@ export const QuizModule: React.FC<QuizModuleProps> = ({ units, selectedUnit, onC
 
       {/* Main Quiz Box */}
       {currentQ && !isFinished ? (
-        <div className="bg-white rounded-3xl border-4 border-amber-200 shadow-xl overflow-hidden p-6">
+        <div className="bg-white rounded-3xl border-4 border-amber-300 shadow-xl overflow-hidden p-6">
           {/* Header Progress */}
           <div className="flex items-center justify-between text-xs font-extrabold text-slate-500 mb-2">
             <span>Câu hỏi {currentIndex + 1} / {questions.length}</span>
-            <span className="text-amber-600 font-extrabold">{currentUnit.titleEn}</span>
+            <span className="text-amber-600 font-black">{currentUnit.titleEn}</span>
           </div>
 
           <div className="w-full h-2.5 bg-slate-100 rounded-full mb-6 overflow-hidden">
@@ -410,21 +460,19 @@ export const QuizModule: React.FC<QuizModuleProps> = ({ units, selectedUnit, onC
         </div>
       ) : isFinished ? (
         /* Quiz Finished Summary */
-        <div className="bg-white rounded-3xl border-4 border-amber-300 shadow-xl p-8 text-center">
-          <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-amber-400 to-orange-400 flex items-center justify-center text-4xl shadow-lg mb-4 animate-bounce">
+        <div className="bg-white rounded-3xl border-4 border-amber-300 shadow-xl p-8 text-center space-y-4">
+          <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-amber-400 to-orange-400 flex items-center justify-center text-4xl shadow-lg animate-bounce">
             🏆
           </div>
-          <h3 className="text-2xl font-black text-slate-800 mb-1">Hoàn Thành Bài Tập!</h3>
-          <p className="text-xs text-slate-500 mb-6">{currentUnit.titleEn}</p>
+          <h3 className="text-2xl font-black text-slate-800 mb-1">Hoàn Thành Bài Tập Quiz!</h3>
+          <p className="text-xs text-slate-500">{currentUnit.titleEn}</p>
 
-          <div className="bg-amber-50 rounded-2xl p-5 border border-amber-200 mb-6 space-y-2">
+          <div className="bg-amber-50 rounded-2xl p-5 border border-amber-200 space-y-2">
             <div className="text-4xl font-black text-amber-600">
               {score} / {questions.length} Câu Đúng
             </div>
-            <p className="text-xs font-extrabold text-amber-800">
-              {score === questions.length
-                ? 'Xuất sắc! Bé đạt 100% điểm tối đa!'
-                : 'Giỏi lắm bé ơi! Tiếp tục cố gắng để đạt điểm tuyệt đối nhé! ⭐'}
+            <p className="text-xs font-black text-emerald-800">
+              🎉 Bé nhận được <strong>+{Math.round((score / questions.length) * 150) + 50} XP</strong> tích lũy đổi quà!
             </p>
           </div>
 

@@ -5,23 +5,21 @@ import { loadUserProgress, saveUserProgress, getDefaultProgress } from './utils/
 import { Navbar } from './components/Navbar';
 import { UnitMap } from './components/UnitMap';
 import { UnitGuidedPath } from './components/UnitGuidedPath';
-import { FlashcardView } from './components/FlashcardView';
 import { PronunciationCoachModal } from './components/PronunciationCoachModal';
 import { QuizModule } from './components/QuizModule';
-import { SpacedRepetitionModule } from './components/SpacedRepetitionModule';
 import { MinigamesModule } from './components/MinigamesModule';
 import { NotebookModule } from './components/NotebookModule';
+import { RewardsExchangeModule, AVAILABLE_GIFTS } from './components/RewardsExchangeModule';
 import { ProgressTrackerModule } from './components/ProgressTrackerModule';
 import { PlacementTestModal } from './components/PlacementTestModal';
 import { ParentPortalModal } from './components/ParentPortalModal';
 import { StudentProfileModal } from './components/StudentProfileModal';
 import { EvaluationReportModal } from './components/EvaluationReportModal';
 import { AiBuddyWidget } from './components/AiBuddyWidget';
-import { ArrowLeft, BookOpen, Sparkles, Award } from 'lucide-react';
 
 export default function App() {
   const [progress, setProgress] = useState<UserProgress>(loadUserProgress);
-  const [activeTab, setActiveTab] = useState<'units' | 'srs' | 'quiz' | 'games' | 'notebook' | 'progress'>('units');
+  const [activeTab, setActiveTab] = useState<'units' | 'quiz' | 'games' | 'notebook' | 'rewards' | 'progress'>('units');
   const [selectedUnit, setSelectedUnit] = useState<UnitData | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
@@ -63,12 +61,35 @@ export default function App() {
     }));
   };
 
-  const handleSaveStudentProfile = (name: string, avatar: string) => {
-    setProgress((prev) => ({
-      ...prev,
-      studentName: name,
-      studentAvatar: avatar,
-    }));
+  const handleSaveStudentProfile = (name: string, avatar: string, shouldReset: boolean = false) => {
+    setProgress((prev) => {
+      if (shouldReset) {
+        const todayStr = new Date().toISOString().split('T')[0];
+        return {
+          selectedGrade: prev.selectedGrade || 2,
+          studentName: name,
+          studentAvatar: avatar,
+          xp: 0,
+          vouchers: 0,
+          claimedGifts: [],
+          streakDays: 1,
+          lastStudyDate: todayStr,
+          completedUnits: [],
+          unitStars: {},
+          masteredWordIds: [],
+          hardWordIds: [],
+          pronunciationScores: {},
+          dailyGoalMinutes: prev.dailyGoalMinutes || 15,
+          todayMinutesSpent: 0,
+          badges: [],
+        };
+      }
+      return {
+        ...prev,
+        studentName: name,
+        studentAvatar: avatar,
+      };
+    });
   };
 
   const handleToggleMastered = (id: string) => {
@@ -81,7 +102,7 @@ export default function App() {
       return {
         ...prev,
         masteredWordIds: nextMastered,
-        xp: !isMastered ? prev.xp + 10 : prev.xp,
+        xp: !isMastered ? prev.xp + 25 : prev.xp,
       };
     });
   };
@@ -103,7 +124,7 @@ export default function App() {
   const handleSavePronunciationScore = (wordId: string, score: number) => {
     setProgress((prev) => {
       const updatedScores = { ...prev.pronunciationScores, [wordId]: score };
-      const earnedXp = score >= 85 ? 15 : 5;
+      const earnedXp = score >= 85 ? 35 : 15;
 
       return {
         ...prev,
@@ -118,7 +139,8 @@ export default function App() {
     scorePercentage: number,
     details?: { quizTimeSeconds: number; correctAnswers: number; totalQuestions: number }
   ) => {
-    // 1. Update progress
+    // 1. Update progress with rich calibrated XP reward
+    // Target XP per unit = ~1200 - 1500 XP so 3 units + games + quizzes gives ~5,000 XP (5 Vouchers = 1 Gift!)
     setProgress((prev) => {
       const currentStars = prev.unitStars[unitId] || 0;
       let newStars = 1;
@@ -126,9 +148,10 @@ export default function App() {
       else if (scorePercentage >= 60) newStars = 2;
 
       const nextStarsMap = { ...prev.unitStars, [unitId]: Math.max(currentStars, newStars) };
-      const nextCompleted = prev.completedUnits.includes(unitId)
-        ? prev.completedUnits
-        : [...prev.completedUnits, unitId];
+      const isNewUnit = !prev.completedUnits.includes(unitId);
+      const nextCompleted = isNewUnit
+        ? [...prev.completedUnits, unitId]
+        : prev.completedUnits;
 
       // Mark all vocabularies of this completed unit as mastered
       const currentGrade = prev.selectedGrade || 2;
@@ -140,12 +163,16 @@ export default function App() {
         nextMastered = Array.from(new Set([...prev.masteredWordIds, ...unitVocabIds]));
       }
 
+      // Bonus XP formula for completing a unit quiz
+      const baseQuizXp = Math.round((scorePercentage / 100) * 400) + 200; // up to 600 XP
+      const unitCompletionBonus = isNewUnit ? 600 : 200; // +600 XP for completing a unit first time
+
       return {
         ...prev,
         unitStars: nextStarsMap,
         completedUnits: nextCompleted,
         masteredWordIds: nextMastered,
-        xp: prev.xp + Math.round(scorePercentage / 2) + 20,
+        xp: prev.xp + baseQuizXp + unitCompletionBonus,
       };
     });
 
@@ -201,19 +228,24 @@ export default function App() {
     setProgress((prev) => ({ ...prev, xp: prev.xp + amount }));
   };
 
-  const handleReviewCard = (wordId: string, rating: 'easy' | 'good' | 'hard') => {
+  const handleExchangeXpForVoucher = () => {
     setProgress((prev) => {
-      let nextHard = [...prev.hardWordIds];
-      if (rating === 'hard' && !nextHard.includes(wordId)) {
-        nextHard.push(wordId);
-      } else if (rating === 'easy') {
-        nextHard = nextHard.filter((w) => w !== wordId);
-      }
-
+      if (prev.xp < 1000) return prev;
       return {
         ...prev,
-        hardWordIds: nextHard,
-        xp: prev.xp + (rating === 'easy' ? 10 : 5),
+        xp: prev.xp - 1000,
+        vouchers: (prev.vouchers || 0) + 1,
+      };
+    });
+  };
+
+  const handleRedeemGift = (giftId: string) => {
+    setProgress((prev) => {
+      if ((prev.vouchers || 0) < 5) return prev;
+      return {
+        ...prev,
+        vouchers: prev.vouchers - 5,
+        claimedGifts: Array.from(new Set([...(prev.claimedGifts || []), giftId])),
       };
     });
   };
@@ -225,7 +257,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFCF0] font-sans text-[#2D3436] pb-20 select-none">
+    <div className="min-h-screen bg-[#FDFCF0] font-sans text-[#2D3436] pb-24 md:pb-20 select-none">
       {/* Top Navbar */}
       <Navbar
         progress={progress}
@@ -243,7 +275,7 @@ export default function App() {
       />
 
       {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-4">
         {/* Tab 1: Units Roadmap / Flashcard Learning */}
         {activeTab === 'units' && (
           <div>
@@ -254,7 +286,7 @@ export default function App() {
                 onSelectUnit={handleSelectUnit}
                 onOpenStudentProfile={() => setIsStudentProfileOpen(true)}
                 onSelectGrade={handleSelectGrade}
-                onStartSrsReview={() => setActiveTab('srs')}
+                onStartSrsReview={() => setActiveTab('quiz')}
               />
             ) : (
               <UnitGuidedPath
@@ -270,42 +302,60 @@ export default function App() {
           </div>
         )}
 
-        {/* Tab 2: Spaced Repetition System */}
-        {activeTab === 'srs' && (
-          <SpacedRepetitionModule
-            vocabularies={allVocabularies}
-            progress={progress}
-            onReviewCard={handleReviewCard}
-          />
-        )}
-
-        {/* Tab 3: Practice & Quizzes */}
+        {/* Tab 2: Practice & Quizzes */}
         {activeTab === 'quiz' && (
           <QuizModule
             units={units}
             selectedUnit={selectedUnit}
+            completedUnits={progress.completedUnits}
             onCompleteQuiz={handleCompleteQuiz}
+            onGoToMap={() => setActiveTab('units')}
           />
         )}
 
-        {/* Tab 4: Gamification Minigames */}
+        {/* Tab 3: Gamification Minigames */}
         {activeTab === 'games' && (
           <MinigamesModule vocabularies={allVocabularies} onAddXp={handleAddXp} />
         )}
 
-        {/* Tab 5: Notebook of Saved / Hard Words */}
+        {/* Tab 4: Notebook of All Learned Words */}
         {activeTab === 'notebook' && (
           <NotebookModule
             vocabularies={allVocabularies}
+            masteredWordIds={progress.masteredWordIds}
             hardWordIds={progress.hardWordIds}
-            onRemoveHardWord={handleToggleHardWord}
+            onToggleMastered={handleToggleMastered}
             onOpenPronunciationCoach={(vocab) => setPronunciationVocab(vocab)}
+          />
+        )}
+
+        {/* Tab 5: Rewards & Gift Exchange Station */}
+        {activeTab === 'rewards' && (
+          <RewardsExchangeModule
+            progress={progress}
+            onExchangeXpForVoucher={handleExchangeXpForVoucher}
+            onRedeemGift={handleRedeemGift}
           />
         )}
 
         {/* Tab 6: Progress Tracker & Badges */}
         {activeTab === 'progress' && <ProgressTrackerModule progress={progress} />}
       </main>
+
+      {/* Footer / Developer Attribution */}
+      <footer className="mt-8 mb-16 md:mb-8 text-center text-xs text-slate-500 font-medium px-4">
+        <div className="max-w-xl mx-auto bg-white/80 border-2 border-slate-200 rounded-2xl py-3 px-4 shadow-2xs space-y-1">
+          <p className="font-black text-slate-800 text-xs sm:text-sm">
+            K-English SGK — Tiếng Anh Tiểu Học Lớp 1 - 5
+          </p>
+          <p className="text-[11px] font-bold text-slate-600 leading-relaxed">
+            Phát triển bởi <span className="font-black text-amber-700">kulroyal - 0826226888</span>
+            <span className="hidden sm:inline"> | </span>
+            <br className="sm:hidden" />
+            Liên hệ: <a href="mailto:kul.royal@gmail.com" className="font-black text-blue-600 hover:underline">kul.royal@gmail.com</a>
+          </p>
+        </div>
+      </footer>
 
       {/* Floating AI Mascot Companion */}
       <AiBuddyWidget />

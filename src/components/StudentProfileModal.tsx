@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { UserProgress } from '../types';
-import { User, Sparkles, Check, Edit2, X } from 'lucide-react';
+import { User, Sparkles, Check, Edit2, X, AlertTriangle } from 'lucide-react';
 
 interface StudentProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   progress: UserProgress;
-  onSaveProfile: (name: string, avatar: string) => void;
+  onSaveProfile: (name: string, avatar: string, shouldReset: boolean) => void;
 }
 
 const AVATAR_OPTIONS = ['🐱', '🐰', '🐻', '🐶', '🦕', '🦁', '🐼', '🦊', '🦄', '🐝'];
@@ -20,13 +20,18 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
 }) => {
   const [name, setName] = useState(progress.studentName || 'Bé Bún');
   const [avatar, setAvatar] = useState(progress.studentAvatar || '🐱');
+  const [resetPoints, setResetPoints] = useState(true);
 
   if (!isOpen) return null;
+
+  const isNameOrAvatarChanged =
+    name.trim().toLowerCase() !== (progress.studentName || '').trim().toLowerCase() ||
+    avatar !== progress.studentAvatar;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const finalName = name.trim() || 'Bé Yêu';
-    onSaveProfile(finalName, avatar);
+    onSaveProfile(finalName, avatar, isNameOrAvatarChanged && resetPoints);
     onClose();
   };
 
@@ -40,19 +45,19 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
           <X className="w-5 h-5" />
         </button>
 
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-amber-100 border-4 border-slate-900 rounded-3xl text-4xl shadow-md mb-3 animate-bounce">
+        <div className="text-center mb-5">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-amber-100 border-4 border-slate-900 rounded-3xl text-4xl shadow-md mb-2 animate-bounce">
             {avatar}
           </div>
           <h2 className="text-2xl font-black text-slate-900">
             Hồ Sơ Của Bé Học Sinh 🎒
           </h2>
           <p className="text-xs font-bold text-slate-500 mt-1">
-            Nhập tên bé để Mèo Miu Miu xưng hô và nhận xét sau mỗi bài học nhé!
+            Đổi sang profile bé khác để lưu tên & tự động reset điểm bài học từ đầu!
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Avatar Selector */}
           <div>
             <label className="block text-xs font-black text-slate-700 mb-2 uppercase tracking-wide">
@@ -64,7 +69,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
                   key={item}
                   type="button"
                   onClick={() => setAvatar(item)}
-                  className={`w-11 h-11 text-2xl rounded-2xl border-2 flex items-center justify-center transition-all cursor-pointer ${
+                  className={`w-10 h-10 text-2xl rounded-2xl border-2 flex items-center justify-center transition-all cursor-pointer ${
                     avatar === item
                       ? 'bg-amber-300 border-slate-900 scale-110 shadow-sm ring-2 ring-amber-500'
                       : 'bg-slate-50 border-slate-200 hover:bg-amber-50'
@@ -79,7 +84,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
           {/* Name Input */}
           <div>
             <label className="block text-xs font-black text-slate-700 mb-2 uppercase tracking-wide">
-              2. Nhập Tên Bé (Ví dụ: Bé Bún, Bé Bin)
+              2. Nhập Tên Bé Mới
             </label>
             <div className="relative">
               <input
@@ -110,13 +115,39 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
             </div>
           </div>
 
+          {/* Profile change notice */}
+          {isNameOrAvatarChanged && (
+            <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-3 text-xs space-y-1.5">
+              <div className="flex items-center gap-1.5 font-black text-rose-900">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>Phát hiện đổi sang profile bé khác:</span>
+              </div>
+              <p className="text-slate-700 font-medium leading-relaxed">
+                Toàn bộ điểm XP ({progress.xp} XP), phiếu quà, ngôi sao và bài học sẽ được <strong>reset về 0</strong> để bé mới bắt đầu lượt học mới!
+              </p>
+              <label className="flex items-center gap-2 pt-1 font-bold text-rose-900 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={resetPoints}
+                  onChange={(e) => setResetPoints(e.target.checked)}
+                  className="w-4 h-4 accent-rose-600 rounded cursor-pointer"
+                />
+                <span>Reset lại hết điểm số & bài học cho bé mới</span>
+              </label>
+            </div>
+          )}
+
           {/* Submit */}
           <button
             type="submit"
             className="w-full py-3.5 bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-black text-base border-b-4 border-yellow-600 rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all active:translate-y-1 cursor-pointer"
           >
             <Check className="w-5 h-5 stroke-[3]" />
-            <span>Lưu Thông Tin & Bắt Đầu Học!</span>
+            <span>
+              {isNameOrAvatarChanged && resetPoints
+                ? 'Lưu Tên Mới & Reset Điểm Về 0'
+                : 'Lưu Hồ Sơ Của Bé'}
+            </span>
           </button>
         </form>
       </div>

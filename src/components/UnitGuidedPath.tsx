@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { UnitData, VocabularyItem, UserProgress } from '../types';
+import confetti from 'canvas-confetti';
 import {
   ArrowLeft,
   Sparkles,
@@ -35,6 +36,251 @@ interface UnitGuidedPathProps {
     details?: { quizTimeSeconds: number; correctAnswers: number; totalQuestions: number }
   ) => void;
 }
+
+interface SentenceFillCardProps {
+  vocab: VocabularyItem;
+  onOpenPronunciationCoach: (vocab: VocabularyItem) => void;
+}
+
+const SentenceFillCard: React.FC<SentenceFillCardProps> = ({
+  vocab,
+  onOpenPronunciationCoach,
+}) => {
+  const targetWord = vocab.word.toLowerCase();
+  const fullSentence = vocab.exampleEn || `I have a ${vocab.word}.`;
+  const sentenceVi = vocab.exampleVi || `Tớ có một ${vocab.vietnamese}.`;
+
+  const letters = targetWord.split('');
+
+  // Determine hidden indices for missing letters in target word
+  const hiddenIndices = React.useMemo(() => {
+    const indices: number[] = [];
+    if (letters.length <= 3) {
+      indices.push(1); // e.g. c _ t
+    } else if (letters.length === 4) {
+      indices.push(1, 2); // e.g. d _ _ k
+    } else if (letters.length === 5) {
+      indices.push(1, 3); // e.g. s _ a _ e
+    } else {
+      for (let i = 1; i < letters.length - 1; i += 2) {
+        indices.push(i);
+      }
+    }
+    return indices;
+  }, [targetWord]);
+
+  const [userChars, setUserChars] = useState<Record<number, string>>({});
+  const [isChecked, setIsChecked] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
+
+  const isFilled = hiddenIndices.every((idx) => (userChars[idx] || '').trim().length > 0);
+
+  const handleCheck = () => {
+    let correct = true;
+    hiddenIndices.forEach((idx) => {
+      if ((userChars[idx] || '').toLowerCase() !== letters[idx]) {
+        correct = false;
+      }
+    });
+
+    setIsChecked(true);
+    setIsCorrect(correct);
+
+    if (correct) {
+      playSoundEffect('correct');
+      confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
+      speakText(fullSentence);
+    } else {
+      playSoundEffect('wrong');
+    }
+  };
+
+  const handleFillChar = (idx: number, char: string) => {
+    setUserChars((prev) => ({ ...prev, [idx]: char.toLowerCase() }));
+    setIsChecked(false);
+  };
+
+  // Keyboard / Letter choice buttons for kids on touch phones!
+  const availableLetterChoices = React.useMemo(() => {
+    const missingChars = hiddenIndices.map((idx) => letters[idx]);
+    const alphabet = 'abcdefghijklmnopqrstuvwxyz'.split('');
+    const distractors: string[] = [];
+    while (distractors.length < Math.max(3, 6 - missingChars.length)) {
+      const randChar = alphabet[Math.floor(Math.random() * alphabet.length)];
+      if (!missingChars.includes(randChar) && !distractors.includes(randChar)) {
+        distractors.push(randChar);
+      }
+    }
+    return [...missingChars, ...distractors].sort(() => 0.5 - Math.random());
+  }, [hiddenIndices, letters]);
+
+  const handleTapLetterChoice = (char: string) => {
+    const emptySlotIdx = hiddenIndices.find((idx) => !userChars[idx]);
+    if (emptySlotIdx !== undefined) {
+      handleFillChar(emptySlotIdx, char);
+    }
+  };
+
+  const handleClearSlots = () => {
+    setUserChars({});
+    setIsChecked(false);
+    setIsCorrect(false);
+  };
+
+  return (
+    <div
+      className={`bg-white p-4 sm:p-5 rounded-3xl border-3 transition-all shadow-2xs space-y-3 flex flex-col justify-between ${
+        isCorrect ? 'border-emerald-400 bg-emerald-50/20' : 'border-slate-200 hover:border-amber-400'
+      }`}
+    >
+      <div>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-full text-xs font-black">
+            <span>{vocab.emoji}</span>
+            <span>{vocab.word}</span>
+            <span className="text-[10px] text-amber-700 font-normal">({vocab.phonetic})</span>
+          </span>
+
+          <span
+            className={`text-xs font-black px-2.5 py-0.5 rounded-full border ${
+              isCorrect
+                ? 'bg-emerald-100 text-emerald-900 border-emerald-400'
+                : 'bg-amber-100 text-amber-900 border-amber-300'
+            }`}
+          >
+            {isCorrect ? '✅ Đã Điền Đúng' : '⭐ +20 XP'}
+          </span>
+        </div>
+
+        <p className="text-xs font-bold text-slate-600 mb-2">
+          👉 Dịch nghĩa: <strong className="text-slate-900">{sentenceVi}</strong>
+        </p>
+
+        {/* Sentence Display with Fill-in-the-blank Inputs */}
+        <div className="bg-amber-50/80 p-3.5 rounded-2xl border-2 border-amber-200 text-center my-2 space-y-2">
+          <div className="text-[11px] font-black text-amber-900 uppercase tracking-wider">
+            Bé hãy điền từ/chữ cái còn thiếu vào câu:
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-1.5 text-base sm:text-lg font-black text-slate-900">
+            {/* Display full sentence context with target word inputs */}
+            <div className="flex items-center gap-1 bg-white px-3 py-2 rounded-xl border-2 border-amber-400 shadow-2xs">
+              {letters.map((char, idx) => {
+                const isHidden = hiddenIndices.includes(idx);
+                if (!isHidden) {
+                  return (
+                    <span key={idx} className="text-slate-900 font-black text-lg sm:text-xl">
+                      {char}
+                    </span>
+                  );
+                }
+
+                const userVal = userChars[idx] || '';
+                return (
+                  <input
+                    key={idx}
+                    type="text"
+                    maxLength={1}
+                    value={userVal}
+                    onChange={(e) => handleFillChar(idx, e.target.value)}
+                    className={`w-7 h-9 text-center text-lg font-black rounded-lg border-2 uppercase outline-none transition-all ${
+                      isCorrect
+                        ? 'border-emerald-500 bg-emerald-100 text-emerald-950'
+                        : isChecked && !isCorrect
+                        ? 'border-rose-400 bg-rose-50 text-rose-900'
+                        : userVal
+                        ? 'border-amber-500 bg-amber-100 text-slate-900'
+                        : 'border-slate-300 bg-slate-50 focus:border-amber-500'
+                    }`}
+                  />
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Letter Pick Buttons */}
+          {!isCorrect && (
+            <div className="pt-1">
+              <div className="text-[10px] font-bold text-slate-500 mb-1">
+                Hoặc chạm chữ cái dưới đây để điền nhanh:
+              </div>
+              <div className="flex flex-wrap justify-center gap-1.5">
+                {availableLetterChoices.map((char, cIdx) => (
+                  <button
+                    key={cIdx}
+                    onClick={() => handleTapLetterChoice(char)}
+                    className="w-7 h-7 rounded-xl bg-white hover:bg-amber-100 border-2 border-slate-900 font-black text-xs text-slate-900 shadow-2xs cursor-pointer active:scale-95 uppercase"
+                  >
+                    {char}
+                  </button>
+                ))}
+                <button
+                  onClick={handleClearSlots}
+                  className="px-1.5 py-0.5 text-[10px] font-extrabold text-slate-500 hover:text-slate-800 underline cursor-pointer"
+                >
+                  Xóa
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Feedback */}
+          {isChecked && (
+            <div
+              className={`p-1.5 rounded-xl text-xs font-black mt-1 ${
+                isCorrect
+                  ? 'bg-emerald-100 text-emerald-900 border border-emerald-400'
+                  : 'bg-rose-100 text-rose-900 border border-rose-300'
+              }`}
+            >
+              {isCorrect
+                ? '🎉 Giỏi quá! Bé đã hoàn thành mẫu câu chính xác!'
+                : '❌ Chưa chính xác lắm, bé thử lại chữ cái khác xem sao!'}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Action Footer */}
+      <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+        {!isCorrect ? (
+          <button
+            onClick={handleCheck}
+            disabled={!isFilled}
+            className={`px-3.5 py-2 rounded-xl font-black text-xs transition-all shadow-2xs cursor-pointer flex items-center gap-1 ${
+              isFilled
+                ? 'bg-amber-400 hover:bg-amber-500 text-slate-900 border-2 border-slate-900 hover:scale-102'
+                : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+            }`}
+          >
+            <span>Kiểm Tra Đáp Án</span>
+          </button>
+        ) : (
+          <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-300">
+            ✅ Đã Điền Đúng
+          </span>
+        )}
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => speakText(fullSentence)}
+            className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-900 font-black text-xs rounded-xl border border-slate-900 shadow-2xs transition-all cursor-pointer flex items-center gap-1.5"
+          >
+            <Volume2 className="w-3.5 h-3.5" />
+            <span>🔊 Đọc mẫu câu</span>
+          </button>
+
+          <button
+            onClick={() => onOpenPronunciationCoach(vocab)}
+            className="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-black text-xs rounded-xl border border-emerald-300 shadow-2xs transition-all cursor-pointer flex items-center gap-1"
+          >
+            <span>🎤 Đọc thử</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export type StepType =
   | 'story'
@@ -94,7 +340,7 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
 
   const stepsList: { id: StepType; labelVi: string; icon: string; description: string }[] = [
     { id: 'vocab', labelVi: '1. Từ Vựng Flashcard', icon: '📚', description: 'Học từ vựng & nghe âm thanh bản ngữ' },
-    { id: 'story', labelVi: '2. Truyện & Mẫu Câu', icon: '🎬', description: 'Đọc truyện & mẫu câu ngắn chứa từ vựng' },
+    { id: 'story', labelVi: '2. Mẫu Câu & Điền Từ', icon: '✍️', description: 'Điền từ còn thiếu vào mẫu câu & nghe đọc mẫu câu chuẩn' },
     { id: 'pronunciation', labelVi: '3. Chấm Âm AI', icon: '🎤', description: 'Luyện nói & Mèo Miu chấm điểm phát âm' },
     { id: 'game', labelVi: '4. Trò Chơi', icon: '🎮', description: 'Chơi mini game nối từ vui nhộn' },
     { id: 'listening', labelVi: '5. Luyện Nghe', icon: '👂', description: 'Nghe giọng đọc & chọn tranh tương ứng' },
@@ -251,71 +497,28 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
           </button>
         </div>
 
-        {/* STEP 2: SIMPLE SENTENCES & DIALOGUES */}
+        {/* STEP 2: SIMPLE SENTENCES & FILL IN THE BLANKS */}
         {activeStep === 'story' && (
           <div className="space-y-4">
             <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 text-center space-y-2">
               <span className="text-4xl inline-block animate-bounce">{unit.iconEmoji}</span>
               <h4 className="text-lg font-black text-slate-900">
-                Mẫu Câu Giao Tiếp Của Bài: {unit.titleEn}
+                Luyện Mẫu Câu & Điền Từ Còn Thiếu: {unit.titleEn}
               </h4>
               <p className="text-xs font-bold text-slate-600">
-                Các câu nói tiếng Anh siêu ngắn gọn & dễ nhớ bám sát từ vựng bài học. Bé bấm loa 🔊 để nghe phát âm nhé!
+                Bé điền chữ cái còn thiếu vào mẫu câu (hoặc chạm gợi ý phía dưới). Điền đúng sẽ được cộng điểm XP và nghe phát âm mẫu câu chuẩn nhé! 🌟
               </p>
             </div>
 
-            {/* List of Simple Sentences with Audio */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-              {unit.vocabularies.map((vocab) => {
-                const sentenceEn = vocab.exampleEn || `I have a ${vocab.word}.`;
-                const sentenceVi = vocab.exampleVi || `Tớ có một ${vocab.vietnamese}.`;
-
-                return (
-                  <div
-                    key={vocab.id}
-                    className="bg-white p-4 rounded-2xl border-2 border-slate-200 hover:border-amber-400 transition-all shadow-2xs space-y-2 flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 rounded-full text-xs font-black">
-                          <span>{vocab.emoji}</span>
-                          <span>{vocab.word}</span>
-                          <span className="text-[10px] text-amber-700 font-normal">({vocab.phonetic})</span>
-                        </span>
-
-                        <span className="text-xs font-extrabold text-slate-500">
-                          {vocab.vietnamese}
-                        </span>
-                      </div>
-
-                      <p className="font-black text-slate-900 text-base sm:text-lg leading-snug">
-                        {sentenceEn}
-                      </p>
-
-                      <p className="font-bold text-slate-500 text-xs mt-1">
-                        👉 {sentenceVi}
-                      </p>
-                    </div>
-
-                    <div className="pt-2 flex items-center justify-between gap-2 border-t border-slate-100">
-                      <button
-                        onClick={() => speakText(sentenceEn)}
-                        className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-900 font-black text-xs rounded-xl border border-slate-900 shadow-2xs transition-all cursor-pointer flex items-center gap-1.5"
-                      >
-                        <Volume2 className="w-3.5 h-3.5" />
-                        <span>Nghe đọc câu</span>
-                      </button>
-
-                      <button
-                        onClick={() => onOpenPronunciationCoach(vocab)}
-                        className="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-black text-xs rounded-xl border border-emerald-300 shadow-2xs transition-all cursor-pointer flex items-center gap-1"
-                      >
-                        <span>🎤 Đọc thử</span>
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+            {/* List of Sentence Fill Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {unit.vocabularies.map((vocab) => (
+                <SentenceFillCard
+                  key={vocab.id}
+                  vocab={vocab}
+                  onOpenPronunciationCoach={onOpenPronunciationCoach}
+                />
+              ))}
             </div>
 
             <div className="pt-4 flex justify-center">
@@ -347,7 +550,7 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
                 onClick={handleNextFromVocab}
                 className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white border-3 border-slate-900 rounded-2xl font-black text-sm shadow-2xs cursor-pointer inline-flex items-center gap-2"
               >
-                <span>Đã Thuộc Từ Vựng ➔ Sang Xem Truyện & Mẫu Câu 🎬</span>
+                <span>Đã Thuộc Từ Vựng ➔ Sang Luyện Mẫu Câu & Điền Từ ✍️</span>
               </button>
             </div>
           </div>

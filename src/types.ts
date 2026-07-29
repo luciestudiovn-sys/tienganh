@@ -45,11 +45,22 @@ export interface UnitData {
   isReviewUnit?: boolean;
 }
 
+export interface GiftItem {
+  id: string;
+  name: string;
+  description: string;
+  imageEmoji: string;
+  requiredVouchers: number; // 5 vouchers
+  category: string;
+}
+
 export interface UserProgress {
   selectedGrade: GradeLevel;
   studentName: string;
   studentAvatar: string;
   xp: number;
+  vouchers: number; // Phiếu chăm học (1000 XP = 1 Phiếu)
+  claimedGifts: string[]; // Gift IDs redeemed
   streakDays: number;
   lastStudyDate: string; // YYYY-MM-DD
   completedUnits: number[]; // unit IDs
