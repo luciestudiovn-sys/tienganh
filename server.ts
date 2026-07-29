@@ -29,7 +29,7 @@ const getGenAI = () => {
 
 // 1. Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', app: 'Tiếng Anh 2 - Global Success' });
+  res.json({ status: 'ok', app: 'Tiếng Anh Tiểu Học Lớp 1 - 5 (Global Success)' });
 });
 
 // 2. AI Pronunciation Evaluation Route
@@ -44,7 +44,7 @@ app.post('/api/pronunciation-evaluate', async (req, res) => {
     const ai = getGenAI();
 
     // If audio is present, use multimodal input; otherwise text check
-    const promptText = `Bạn là Chuyên gia luyện phát âm Tiếng Anh chuẩn Quốc tế dành cho học sinh Lớp 2 Việt Nam (Chương trình SGK Tiếng Anh 2 Global Success).
+    const promptText = `Bạn là Chuyên gia luyện phát âm Tiếng Anh chuẩn Quốc tế dành cho học sinh Tiểu học Việt Nam Lớp 1 - Lớp 5 (Chương trình SGK Tiếng Anh Global Success Bộ GD&ĐT).
 Từ/Câu mục tiêu bé cần phát âm là: "${targetWord}".
 Bé đã phát âm/nói câu: "${userSpokenText || 'Âm thanh đã ghi âm'}".
 
@@ -183,9 +183,9 @@ app.post('/api/buddy-chat', async (req, res) => {
   try {
     const ai = getGenAI();
 
-    const systemInstruction = `Bạn là "Mèo Miu Miu" 🐱 - Trợ lý học Tiếng Anh Lớp 2 chuẩn Global Success cực kỳ đáng yêu, thân thiện và kiên nhẫn.
+    const systemInstruction = `Bạn là "Mèo Miu Miu" 🐱 - Trợ lý học Tiếng Anh Tiểu Học (Lớp 1, Lớp 2, Lớp 3, Lớp 4, Lớp 5) chuẩn Sách Giáo Khoa Global Success Bộ GD&ĐT cực kỳ đáng yêu, thân thiện và kiên nhẫn.
 Nhiệm vụ của bạn:
-- Giải đáp thắc mắc dịch từ vựng Tiếng Anh - Tiếng Việt cho các bé 6-7 tuổi (Ví dụ: "bảng / board", "cái cặp / bag", "quyển sách / book", "con mèo / cat").
+- Giải đáp thắc mắc dịch từ vựng Tiếng Anh - Tiếng Việt cho các bé tiểu học 6-11 tuổi (Ví dụ: "bảng / board", "cái cặp / bag", "quyển sách / book", "con mèo / cat", "address / địa chỉ").
 - Nếu bé hỏi "bang đọc là gì" hay "bảng đọc là gì", hãy giải thích: "bảng" trong tiếng Anh là **board** (/bɔːrd/), còn chiếc cặp là **bag** (/bæɡ/)!
 - Trả lời bằng tiếng Việt ngộ nghĩnh, kèm phiên âm chuẩn, từ tiếng Anh in đậm và emoji đáng yêu (🐱, 🎒, ⭐, 📚).
 - Luôn động viên khen ngợi bé ("Bé giỏi lắm!", "Miu Miu khen bé nè!").

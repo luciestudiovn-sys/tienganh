@@ -29,8 +29,11 @@ export interface QuizQuestion {
   emoji?: string;
 }
 
+export type GradeLevel = 1 | 2 | 3 | 4 | 5;
+
 export interface UnitData {
   id: number;
+  gradeLevel?: GradeLevel;
   titleEn: string;
   titleVi: string;
   letterFocus: string;
@@ -43,6 +46,7 @@ export interface UnitData {
 }
 
 export interface UserProgress {
+  selectedGrade: GradeLevel;
   studentName: string;
   studentAvatar: string;
   xp: number;

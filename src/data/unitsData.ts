@@ -1249,6 +1249,7 @@ export const UNITS_DATA: UnitData[] = [
   },
 ];
 
+
 export const INITIAL_BADGES: BadgeInfo[] = [
   {
     id: 'badge-first-step',

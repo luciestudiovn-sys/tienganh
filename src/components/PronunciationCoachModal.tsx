@@ -74,7 +74,7 @@ export const PronunciationCoachModal: React.FC<PronunciationCoachModalProps> = (
           score: 90,
           stars: 3,
           phonemeFeedback: `Bé phát âm âm /${vocab.letter.toLowerCase()}/ tròn vành rõ chữ!`,
-          encouragementVi: 'Xuất sắc lắm bé ơi! Miu Miu nghe rất rõ giọng bé rồi nè! ⭐',
+          encouragementVi: 'Xuất sắc lắm bé ơi! Mèo Miu nghe rất rõ giọng bé rồi nè! ⭐',
           recognizedText: vocab.word,
         });
       }, 1000);

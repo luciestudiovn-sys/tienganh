@@ -1,6 +1,6 @@
 {
-  "name": "Tiếng Anh 2 - Global Success",
-  "description": "Ứng dụng học Tiếng Anh lớp 2 chuẩn chương trình Kết nối tri thức (Global Success) dành cho trẻ em với phát âm AI, từ vựng, flashcard, bài tập tương tác, game hoá và theo dõi tiến độ.",
+  "name": "Tiếng Anh Tiểu Học Lớp 1 - 5 (Global Success)",
+  "description": "Ứng dụng học Tiếng Anh Tiểu Học từ Lớp 1 đến Lớp 5 chuẩn chương trình Bộ Giáo Dục & Đào Tạo Kết nối tri thức (Global Success) dành cho học sinh tiểu học với phát âm AI, từ vựng, flashcard, bài tập tương tác, game hoá và theo dõi tiến độ.",
   "requestFramePermissions": ["microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

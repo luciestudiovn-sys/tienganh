@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { UNITS_DATA } from './data/unitsData';
-import { UnitData, VocabularyItem, UserProgress, EvaluationReport } from './types';
+import { ALL_GRADE_UNITS } from './data/gradeUnitsData';
+import { UnitData, VocabularyItem, UserProgress, EvaluationReport, GradeLevel } from './types';
 import { loadUserProgress, saveUserProgress, getDefaultProgress } from './utils/storage';
 import { Navbar } from './components/Navbar';
 import { UnitMap } from './components/UnitMap';
+import { UnitGuidedPath } from './components/UnitGuidedPath';
 import { FlashcardView } from './components/FlashcardView';
 import { PronunciationCoachModal } from './components/PronunciationCoachModal';
 import { QuizModule } from './components/QuizModule';
@@ -24,6 +25,10 @@ export default function App() {
   const [selectedUnit, setSelectedUnit] = useState<UnitData | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
+  // Active units based on selected Grade (1..5)
+  const activeGrade: GradeLevel = progress.selectedGrade || 2;
+  const units: UnitData[] = ALL_GRADE_UNITS[activeGrade] || ALL_GRADE_UNITS[2];
+
   // Timers for evaluation reports
   const [unitStartTimeMap, setUnitStartTimeMap] = useState<Record<number, number>>({});
 
@@ -39,8 +44,16 @@ export default function App() {
     saveUserProgress(progress);
   }, [progress]);
 
-  // Flatten all vocabularies across units
-  const allVocabularies = UNITS_DATA.flatMap((u) => u.vocabularies);
+  // Flatten all vocabularies across units of active grade
+  const allVocabularies = units.flatMap((u) => u.vocabularies);
+
+  const handleSelectGrade = (grade: GradeLevel) => {
+    setProgress((prev) => ({
+      ...prev,
+      selectedGrade: grade,
+    }));
+    setSelectedUnit(null);
+  };
 
   const handleSelectUnit = (unit: UnitData) => {
     setSelectedUnit(unit);
@@ -117,16 +130,27 @@ export default function App() {
         ? prev.completedUnits
         : [...prev.completedUnits, unitId];
 
+      // Mark all vocabularies of this completed unit as mastered
+      const currentGrade = prev.selectedGrade || 2;
+      const gradeUnits = ALL_GRADE_UNITS[currentGrade] || ALL_GRADE_UNITS[2];
+      const targetUnit = gradeUnits.find((u) => u.id === unitId);
+      let nextMastered = prev.masteredWordIds;
+      if (targetUnit) {
+        const unitVocabIds = targetUnit.vocabularies.map((v) => v.id);
+        nextMastered = Array.from(new Set([...prev.masteredWordIds, ...unitVocabIds]));
+      }
+
       return {
         ...prev,
         unitStars: nextStarsMap,
         completedUnits: nextCompleted,
-        xp: prev.xp + Math.round(scorePercentage / 2),
+        masteredWordIds: nextMastered,
+        xp: prev.xp + Math.round(scorePercentage / 2) + 20,
       };
     });
 
     // 2. Compute timing & generate Evaluation Report
-    const targetUnit = UNITS_DATA.find((u) => u.id === unitId) || UNITS_DATA[0];
+    const targetUnit = units.find((u) => u.id === unitId) || units[0];
     const unitStartedAt = unitStartTimeMap[unitId] || (Date.now() - 150000);
     const totalElapsedSec = Math.max(25, Math.round((Date.now() - unitStartedAt) / 1000));
     const quizSec = details?.quizTimeSeconds || 45;
@@ -168,7 +192,7 @@ export default function App() {
   const handleNextUnitFromReport = () => {
     if (!evaluationReport) return;
     const nextId = evaluationReport.unitId + 1;
-    const nextUnit = UNITS_DATA.find((u) => u.id === nextId) || UNITS_DATA[0];
+    const nextUnit = units.find((u) => u.id === nextId) || units[0];
     handleSelectUnit(nextUnit);
     setActiveTab('units');
   };
@@ -195,7 +219,7 @@ export default function App() {
   };
 
   const handleCompletePlacementTest = (recUnit: number) => {
-    const targetUnit = UNITS_DATA.find((u) => u.id === recUnit) || UNITS_DATA[0];
+    const targetUnit = units.find((u) => u.id === recUnit) || units[0];
     handleSelectUnit(targetUnit);
     setActiveTab('units');
   };
@@ -213,71 +237,35 @@ export default function App() {
         onOpenPlacementTest={() => setIsPlacementTestOpen(true)}
         onOpenParentPortal={() => setIsParentPortalOpen(true)}
         onOpenStudentProfile={() => setIsStudentProfileOpen(true)}
+        onSelectGrade={handleSelectGrade}
         soundEnabled={soundEnabled}
         setSoundEnabled={setSoundEnabled}
       />
 
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-        {/* Tab 1: 16 Units Roadmap / Flashcard Learning */}
+        {/* Tab 1: Units Roadmap / Flashcard Learning */}
         {activeTab === 'units' && (
           <div>
             {!selectedUnit ? (
               <UnitMap
-                units={UNITS_DATA}
+                units={units}
                 progress={progress}
                 onSelectUnit={handleSelectUnit}
                 onOpenStudentProfile={() => setIsStudentProfileOpen(true)}
+                onSelectGrade={handleSelectGrade}
+                onStartSrsReview={() => setActiveTab('srs')}
               />
             ) : (
-              <div>
-                {/* Back to Units Roadmap Button */}
-                <div className="flex items-center justify-between mb-4">
-                  <button
-                    onClick={() => setSelectedUnit(null)}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:bg-amber-50 text-slate-700 font-bold rounded-2xl shadow-xs transition-colors cursor-pointer text-xs sm:text-sm"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    <span>Trở về Danh Sách 16 Bài Học</span>
-                  </button>
-
-                  <div className="text-right">
-                    <span className="text-xs font-black text-amber-600 bg-amber-100 px-3 py-1 rounded-full">
-                      {selectedUnit.titleEn}
-                    </span>
-                  </div>
-                </div>
-
-                <FlashcardView
-                  vocabularies={selectedUnit.vocabularies}
-                  masteredIds={progress.masteredWordIds}
-                  hardWordIds={progress.hardWordIds}
-                  onToggleMastered={handleToggleMastered}
-                  onToggleHardWord={handleToggleHardWord}
-                  onOpenPronunciationCoach={(vocab) => setPronunciationVocab(vocab)}
-                />
-
-                {/* Section Bài tập thực hành ngay dưới bài học */}
-                <div className="mt-12 pt-8 border-t-4 border-dashed border-amber-300">
-                  <div className="text-center mb-6">
-                    <span className="inline-block px-4 py-1.5 bg-yellow-400 border-2 border-slate-900 rounded-full text-xs font-black text-slate-900 mb-2 shadow-2xs">
-                      ✍️ BÀI TẬP THỰC HÀNH TƯƠNG TÁC
-                    </span>
-                    <h3 className="text-2xl font-black text-slate-900">
-                      Bài Tập {selectedUnit.titleEn} ({selectedUnit.titleVi})
-                    </h3>
-                    <p className="text-xs font-bold text-slate-600 mt-1">
-                      Làm bài tập trắc nghiệm & nối từ để củng cố kiến thức và nhận +50 XP!
-                    </p>
-                  </div>
-
-                  <QuizModule
-                    units={UNITS_DATA}
-                    selectedUnit={selectedUnit}
-                    onCompleteQuiz={handleCompleteQuiz}
-                  />
-                </div>
-              </div>
+              <UnitGuidedPath
+                unit={selectedUnit}
+                progress={progress}
+                onBackToMap={() => setSelectedUnit(null)}
+                onToggleMastered={handleToggleMastered}
+                onToggleHardWord={handleToggleHardWord}
+                onOpenPronunciationCoach={(vocab) => setPronunciationVocab(vocab)}
+                onCompleteUnitQuiz={handleCompleteQuiz}
+              />
             )}
           </div>
         )}
@@ -294,7 +282,7 @@ export default function App() {
         {/* Tab 3: Practice & Quizzes */}
         {activeTab === 'quiz' && (
           <QuizModule
-            units={UNITS_DATA}
+            units={units}
             selectedUnit={selectedUnit}
             onCompleteQuiz={handleCompleteQuiz}
           />

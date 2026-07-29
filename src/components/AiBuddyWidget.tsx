@@ -7,7 +7,7 @@ export const AiBuddyWidget: React.FC = () => {
   const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; text: string }>>([
     {
       role: 'assistant',
-      text: 'Mèo Miu Miu chào bé nè! 🐱 Cùng Miu Miu học Tiếng Anh Lớp 2 chuẩn Global Success nhé! Bé muốn hỏi gì Miu Miu không?',
+      text: 'Mèo Miu chào bé nè! 🐱 Cùng Mèo Miu học Tiếng Anh SGK nhé! Bé muốn hỏi gì Mèo Miu không?',
     },
   ]);
   const [input, setInput] = useState('');
@@ -34,7 +34,7 @@ export const AiBuddyWidget: React.FC = () => {
       });
 
       const data = await response.json();
-      const replyText = data.reply || 'Miu Miu thương bé lắm! Cùng luyện tập thật vui nhé! 🐱';
+      const replyText = data.reply || 'Mèo Miu thương bé lắm! Cùng luyện tập thật vui nhé! 🐱';
 
       setMessages([...newMessages, { role: 'assistant', text: replyText }]);
       speakVietnamese(replyText);
@@ -44,7 +44,7 @@ export const AiBuddyWidget: React.FC = () => {
         ...newMessages,
         {
           role: 'assistant',
-          text: 'Miu Miu đang tập hát nên nghe không rõ nè! Bé thử hỏi lại nhé! 🐱',
+          text: 'Mèo Miu đang tập hát nên nghe không rõ nè! Bé thử hỏi lại nhé! 🐱',
         },
       ]);
     } finally {
@@ -58,10 +58,10 @@ export const AiBuddyWidget: React.FC = () => {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="fixed bottom-5 right-5 z-40 bg-gradient-to-tr from-amber-400 via-orange-400 to-rose-400 text-white p-3.5 rounded-3xl shadow-2xl flex items-center gap-2 hover:scale-105 active:scale-95 transition-all cursor-pointer border-2 border-white/60"
-        title="Trợ lý Mèo Miu Miu"
+        title="Trợ lý Mèo Miu"
       >
         <span className="text-3xl animate-bounce">🐱</span>
-        <span className="hidden sm:inline font-extrabold text-xs tracking-wide">Mèo Miu Miu AI</span>
+        <span className="hidden sm:inline font-extrabold text-xs tracking-wide">Mèo Miu AI</span>
       </button>
 
       {/* Floating Chat Modal */}
@@ -72,8 +72,8 @@ export const AiBuddyWidget: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="text-2xl">🐱</span>
               <div>
-                <h4 className="font-extrabold text-sm">Mèo Miu Miu</h4>
-                <p className="text-[10px] text-amber-100">Bạn đồng hành học Tiếng Anh 2</p>
+                <h4 className="font-extrabold text-sm">Mèo Miu</h4>
+                <p className="text-[10px] text-amber-100">Bạn đồng hành học Tiếng Anh</p>
               </div>
             </div>
             <button
@@ -109,7 +109,7 @@ export const AiBuddyWidget: React.FC = () => {
                       onClick={() => speakVietnamese(m.text)}
                       className="mt-1 flex items-center gap-1 text-[10px] font-bold text-amber-600 hover:text-amber-700 cursor-pointer"
                     >
-                      <Volume2 className="w-3 h-3" /> Nghe Miu Miu đọc
+                      <Volume2 className="w-3 h-3" /> Nghe Mèo Miu đọc
                     </button>
                   )}
                 </div>
@@ -118,7 +118,7 @@ export const AiBuddyWidget: React.FC = () => {
             {isLoading && (
               <div className="flex items-center gap-2 text-xs text-amber-700 font-bold p-2">
                 <span className="text-lg animate-spin">🐱</span>
-                <span>Miu Miu đang nghĩ câu trả lời...</span>
+                <span>Mèo Miu đang nghĩ câu trả lời...</span>
               </div>
             )}
           </div>
@@ -127,7 +127,7 @@ export const AiBuddyWidget: React.FC = () => {
           <form onSubmit={handleSend} className="p-2.5 bg-white border-t border-amber-200 flex gap-2">
             <input
               type="text"
-              placeholder="Hỏi Miu Miu điều gì nè..."
+              placeholder="Hỏi Mèo Miu điều gì nè..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2 text-xs outline-none focus:border-amber-400 font-medium"
