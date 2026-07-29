@@ -1,49 +1,105 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { VocabularyItem } from '../types';
 import { speakText, playSoundEffect } from '../utils/sound';
 import confetti from 'canvas-confetti';
-import { Gamepad2, Sparkles, RefreshCw, Trophy, Volume2, Flame, RotateCcw } from 'lucide-react';
+import { Gamepad2, Sparkles, Trophy, Volume2, RotateCcw } from 'lucide-react';
+
+import { ArcheryGame } from './games/ArcheryGame';
+import { SpeedRacingGame } from './games/SpeedRacingGame';
+import { WordScrambleGame } from './games/WordScrambleGame';
+import { PictureDetectiveGame } from './games/PictureDetectiveGame';
+import { CatSorterGame } from './games/CatSorterGame';
+import { WordMatchLinesGame } from './games/WordMatchLinesGame';
+import { TreasureDiverGame } from './games/TreasureDiverGame';
+import { PeekABooGame } from './games/PeekABooGame';
+import { KidsMillionaireGame } from './games/KidsMillionaireGame';
+import { WhackAMoleGame } from './games/WhackAMoleGame';
 
 interface MinigamesModuleProps {
   vocabularies: VocabularyItem[];
   onAddXp: (amount: number) => void;
 }
 
+export type GameKey =
+  | 'memory'
+  | 'bubble'
+  | 'archery'
+  | 'racing'
+  | 'scramble'
+  | 'detective'
+  | 'catsorter'
+  | 'wordmatch'
+  | 'diver'
+  | 'peekaboo'
+  | 'millionaire'
+  | 'whackamole';
+
 export const MinigamesModule: React.FC<MinigamesModuleProps> = ({ vocabularies, onAddXp }) => {
-  const [activeGame, setActiveGame] = useState<'memory' | 'bubble'>('memory');
+  const [activeGame, setActiveGame] = useState<GameKey>('memory');
+
+  const gamesList: Array<{ id: GameKey; name: string; icon: string; color: string }> = [
+    { id: 'memory', name: '1. Gọt Bút Chì', icon: '✏️', color: 'bg-emerald-500 text-white' },
+    { id: 'bubble', name: '2. Bong Bóng', icon: '🎈', color: 'bg-blue-500 text-white' },
+    { id: 'archery', name: '3. Bắn Cung', icon: '🏹', color: 'bg-amber-500 text-white' },
+    { id: 'racing', name: '4. Đua Xe Nitro', icon: '🏎️', color: 'bg-rose-500 text-white' },
+    { id: 'scramble', name: '5. Xếp Chữ Cái', icon: '🧩', color: 'bg-purple-500 text-white' },
+    { id: 'detective', name: '6. Thám Tử', icon: '🔍', color: 'bg-indigo-500 text-white' },
+    { id: 'catsorter', name: '7. Mèo Ăn Cá', icon: '🐟', color: 'bg-teal-500 text-white' },
+    { id: 'wordmatch', name: '8. Nối Cặp Từ', icon: '🔗', color: 'bg-green-600 text-white' },
+    { id: 'diver', name: '9. Thợ Lặn Vàng', icon: '⚓', color: 'bg-sky-500 text-white' },
+    { id: 'peekaboo', name: '10. Trốn Tìm', icon: '🙈', color: 'bg-pink-500 text-white' },
+    { id: 'millionaire', name: '11. Triệu Phú', icon: '💡', color: 'bg-yellow-500 text-slate-950' },
+    { id: 'whackamole', name: '12. Đập Chuột', icon: '🔨', color: 'bg-orange-500 text-white' },
+  ];
 
   return (
-    <div className="max-w-3xl mx-auto py-4">
-      {/* Game Selector Tabs */}
-      <div className="flex justify-center gap-3 mb-6">
-        <button
-          onClick={() => setActiveGame('memory')}
-          className={`px-5 py-3 rounded-2xl font-extrabold text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition-all ${
-            activeGame === 'memory'
-              ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200 scale-102'
-              : 'bg-white text-slate-700 border border-slate-200 hover:bg-emerald-50'
-          }`}
-        >
-          <span>✏️ Game 1: Gọt Bút Chì (Lật Hình Ghép Từ)</span>
-        </button>
+    <div className="max-w-4xl mx-auto py-4 space-y-5">
+      {/* Game Selector Menu Grid */}
+      <div className="bg-white p-3.5 rounded-3xl border-3 border-slate-200 shadow-sm space-y-2">
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+            <Gamepad2 className="w-4 h-4 text-amber-500" />
+            <span>Kho 12 Trò Chơi Mini Tiếng Anh Siêu Vui</span>
+          </h2>
+          <span className="text-[11px] font-bold text-slate-500">Bấm chọn trò chơi bé thích 🎮</span>
+        </div>
 
-        <button
-          onClick={() => setActiveGame('bubble')}
-          className={`px-5 py-3 rounded-2xl font-extrabold text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition-all ${
-            activeGame === 'bubble'
-              ? 'bg-blue-500 text-white shadow-lg shadow-blue-200 scale-102'
-              : 'bg-white text-slate-700 border border-slate-200 hover:bg-blue-50'
-          }`}
-        >
-          <span>🎈 Game 2: Bong Bóng Từ Vựng</span>
-        </button>
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1.5">
+          {gamesList.map((g) => {
+            const isActive = activeGame === g.id;
+            return (
+              <button
+                key={g.id}
+                onClick={() => setActiveGame(g.id)}
+                className={`p-2 rounded-2xl font-black text-[11px] sm:text-xs flex flex-col items-center justify-center gap-1 cursor-pointer transition-all border-2 active:scale-95 ${
+                  isActive
+                    ? `${g.color} border-slate-900 shadow-md scale-102`
+                    : 'bg-slate-50 hover:bg-amber-100 border-slate-200 text-slate-700'
+                }`}
+              >
+                <span className="text-xl sm:text-2xl">{g.icon}</span>
+                <span className="truncate w-full text-center leading-tight">{g.name}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {activeGame === 'memory' ? (
-        <MemoryMatchGame vocabularies={vocabularies} onAddXp={onAddXp} />
-      ) : (
-        <BubblePopGame vocabularies={vocabularies} onAddXp={onAddXp} />
-      )}
+      {/* Render Active Game */}
+      <div>
+        {activeGame === 'memory' && <MemoryMatchGame vocabularies={vocabularies} onAddXp={onAddXp} />}
+        {activeGame === 'bubble' && <BubblePopGame vocabularies={vocabularies} onAddXp={onAddXp} />}
+        {activeGame === 'archery' && <ArcheryGame vocabularies={vocabularies} onAddXp={onAddXp} />}
+        {activeGame === 'racing' && <SpeedRacingGame vocabularies={vocabularies} onAddXp={onAddXp} />}
+        {activeGame === 'scramble' && <WordScrambleGame vocabularies={vocabularies} onAddXp={onAddXp} />}
+        {activeGame === 'detective' && <PictureDetectiveGame vocabularies={vocabularies} onAddXp={onAddXp} />}
+        {activeGame === 'catsorter' && <CatSorterGame vocabularies={vocabularies} onAddXp={onAddXp} />}
+        {activeGame === 'wordmatch' && <WordMatchLinesGame vocabularies={vocabularies} onAddXp={onAddXp} />}
+        {activeGame === 'diver' && <TreasureDiverGame vocabularies={vocabularies} onAddXp={onAddXp} />}
+        {activeGame === 'peekaboo' && <PeekABooGame vocabularies={vocabularies} onAddXp={onAddXp} />}
+        {activeGame === 'millionaire' && <KidsMillionaireGame vocabularies={vocabularies} onAddXp={onAddXp} />}
+        {activeGame === 'whackamole' && <WhackAMoleGame vocabularies={vocabularies} onAddXp={onAddXp} />}
+      </div>
     </div>
   );
 };
@@ -53,12 +109,13 @@ const MemoryMatchGame: React.FC<{ vocabularies: VocabularyItem[]; onAddXp: (amt:
   vocabularies,
   onAddXp,
 }) => {
-  const [cards, setCards] = useState<Array<{ id: string; content: string; type: 'word' | 'emoji'; wordId: string; flipped: boolean; matched: boolean }>>([]);
-  const [flippedIndices, setFlippedIndices] = useState<number[]>([]);
-  const [matches, setMatches] = useState(0);
+  const [cards, setCards] = React.useState<
+    Array<{ id: string; content: string; type: 'word' | 'emoji'; wordId: string; flipped: boolean; matched: boolean }>
+  >([]);
+  const [flippedIndices, setFlippedIndices] = React.useState<number[]>([]);
+  const [matches, setMatches] = React.useState(0);
 
   const initGame = () => {
-    // Pick 6 random vocabularies
     const selected = [...vocabularies].sort(() => 0.5 - Math.random()).slice(0, 6);
     const cardList: any[] = [];
 
@@ -86,7 +143,7 @@ const MemoryMatchGame: React.FC<{ vocabularies: VocabularyItem[]; onAddXp: (amt:
     setMatches(0);
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     initGame();
   }, []);
 
@@ -109,7 +166,6 @@ const MemoryMatchGame: React.FC<{ vocabularies: VocabularyItem[]; onAddXp: (amt:
       const idx2 = newFlipped[1];
 
       if (cards[idx1].wordId === cards[idx2].wordId) {
-        // Match!
         setTimeout(() => {
           const matchedCards = [...newCards];
           matchedCards[idx1].matched = true;
@@ -129,7 +185,6 @@ const MemoryMatchGame: React.FC<{ vocabularies: VocabularyItem[]; onAddXp: (amt:
           });
         }, 500);
       } else {
-        // No match
         setTimeout(() => {
           const resetCards = [...newCards];
           resetCards[idx1].flipped = false;
@@ -200,9 +255,9 @@ const BubblePopGame: React.FC<{ vocabularies: VocabularyItem[]; onAddXp: (amt: n
   vocabularies,
   onAddXp,
 }) => {
-  const [targetVocab, setTargetVocab] = useState<VocabularyItem | null>(null);
-  const [options, setOptions] = useState<VocabularyItem[]>([]);
-  const [poppedCount, setPoppedCount] = useState(0);
+  const [targetVocab, setTargetVocab] = React.useState<VocabularyItem | null>(null);
+  const [options, setOptions] = React.useState<VocabularyItem[]>([]);
+  const [poppedCount, setPoppedCount] = React.useState(0);
 
   const setupRound = () => {
     if (vocabularies.length < 4) return;
@@ -215,7 +270,7 @@ const BubblePopGame: React.FC<{ vocabularies: VocabularyItem[]; onAddXp: (amt: n
     speakText(target.word);
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     setupRound();
   }, []);
 

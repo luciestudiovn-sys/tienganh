@@ -1,42 +1,157 @@
-// Native Web Speech API & Web Audio Synthesizer for Kids English App
+// Native Web Speech API & Web Audio Synthesizer with Online TTS Fallback for Kids English App
+
+let currentAudio: HTMLAudioElement | null = null;
+
+// Preload voices if available
+if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+  try {
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = () => {
+      window.speechSynthesis.getVoices();
+    };
+  } catch (e) {
+    console.warn('Speech synthesis voice init warning:', e);
+  }
+}
 
 export const speakText = (text: string, rate = 0.85, pitch = 1.1) => {
-  if (!('speechSynthesis' in window)) return;
+  if (!text) return;
 
-  window.speechSynthesis.cancel(); // cancel previous speech
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'en-US';
-  utterance.rate = rate; // slightly slower for 2nd graders
-  utterance.pitch = pitch; // slightly higher friendly pitch for kids
-
-  // Try to pick an American English voice if available
-  const voices = window.speechSynthesis.getVoices();
-  const enVoice = voices.find(
-    (v) => v.lang.startsWith('en') && (v.name.includes('US') || v.name.includes('Samantha') || v.name.includes('Natural'))
-  ) || voices.find((v) => v.lang.startsWith('en'));
-
-  if (enVoice) {
-    utterance.voice = enVoice;
+  // Stop any running fallback audio element
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
   }
 
-  window.speechSynthesis.speak(utterance);
+  // Fallback to clear online TTS Audio MP3 if SpeechSynthesis fails or is blocked
+  const fallbackToOnlineTts = (txt: string) => {
+    try {
+      const encoded = encodeURIComponent(txt);
+      // Youdao English Voice endpoint (type=2 for US accent)
+      const audioUrl = `https://dict.youdao.com/dictvoice?audio=${encoded}&type=2`;
+      const audio = new Audio(audioUrl);
+      audio.playbackRate = Math.max(0.7, Math.min(1.2, rate));
+      currentAudio = audio;
+      audio.play().catch(() => {
+        // Secondary backup: Google Translate TTS
+        const googleUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encoded}`;
+        const audioBackup = new Audio(googleUrl);
+        currentAudio = audioBackup;
+        audioBackup.play().catch((err) => console.warn('Online TTS fallback failed:', err));
+      });
+    } catch (e) {
+      console.warn('TTS fallback error:', e);
+    }
+  };
+
+  if (typeof window === 'undefined') return;
+
+  if ('speechSynthesis' in window && window.speechSynthesis) {
+    try {
+      // Unfreeze Chrome speech engine if paused
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+
+      window.speechSynthesis.cancel(); // cancel pending speech queue
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      utterance.rate = rate;
+      utterance.pitch = pitch;
+
+      const voices = window.speechSynthesis.getVoices();
+      const enVoice =
+        voices.find(
+          (v) =>
+            v.lang.startsWith('en') &&
+            (v.name.includes('US') ||
+              v.name.includes('Samantha') ||
+              v.name.includes('Google') ||
+              v.name.includes('Natural'))
+        ) || voices.find((v) => v.lang.startsWith('en'));
+
+      if (enVoice) {
+        utterance.voice = enVoice;
+      }
+
+      utterance.onerror = () => {
+        fallbackToOnlineTts(text);
+      };
+
+      // Slight timeout prevents browser speech cancel deadlock bug
+      setTimeout(() => {
+        try {
+          window.speechSynthesis.speak(utterance);
+        } catch (e) {
+          fallbackToOnlineTts(text);
+        }
+      }, 50);
+    } catch (e) {
+      fallbackToOnlineTts(text);
+    }
+  } else {
+    fallbackToOnlineTts(text);
+  }
 };
 
 export const speakVietnamese = (text: string) => {
-  if (!('speechSynthesis' in window)) return;
+  if (!text) return;
 
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'vi-VN';
-  utterance.rate = 0.95;
-
-  const voices = window.speechSynthesis.getVoices();
-  const viVoice = voices.find((v) => v.lang.startsWith('vi'));
-  if (viVoice) {
-    utterance.voice = viVoice;
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
   }
 
-  window.speechSynthesis.speak(utterance);
+  const fallbackToOnlineTts = (txt: string) => {
+    try {
+      const encoded = encodeURIComponent(txt);
+      const googleUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=${encoded}`;
+      const audio = new Audio(googleUrl);
+      currentAudio = audio;
+      audio.play().catch((err) => console.warn('Vietnamese TTS fallback failed:', err));
+    } catch (e) {
+      console.warn('Vietnamese TTS error:', e);
+    }
+  };
+
+  if (typeof window === 'undefined') return;
+
+  if ('speechSynthesis' in window && window.speechSynthesis) {
+    try {
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'vi-VN';
+      utterance.rate = 0.95;
+
+      const voices = window.speechSynthesis.getVoices();
+      const viVoice = voices.find((v) => v.lang.startsWith('vi'));
+      if (viVoice) {
+        utterance.voice = viVoice;
+      }
+
+      utterance.onerror = () => {
+        fallbackToOnlineTts(text);
+      };
+
+      setTimeout(() => {
+        try {
+          window.speechSynthesis.speak(utterance);
+        } catch (e) {
+          fallbackToOnlineTts(text);
+        }
+      }, 50);
+    } catch (e) {
+      fallbackToOnlineTts(text);
+    }
+  } else {
+    fallbackToOnlineTts(text);
+  }
 };
 
 // Web Audio API Synthesizer for Sound Effects (No external audio file downloads needed!)
