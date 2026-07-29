@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { UNITS_DATA } from './data/unitsData';
-import { UnitData, VocabularyItem, UserProgress } from './types';
+import { UnitData, VocabularyItem, UserProgress, EvaluationReport } from './types';
 import { loadUserProgress, saveUserProgress, getDefaultProgress } from './utils/storage';
 import { Navbar } from './components/Navbar';
 import { UnitMap } from './components/UnitMap';
@@ -13,6 +13,8 @@ import { NotebookModule } from './components/NotebookModule';
 import { ProgressTrackerModule } from './components/ProgressTrackerModule';
 import { PlacementTestModal } from './components/PlacementTestModal';
 import { ParentPortalModal } from './components/ParentPortalModal';
+import { StudentProfileModal } from './components/StudentProfileModal';
+import { EvaluationReportModal } from './components/EvaluationReportModal';
 import { AiBuddyWidget } from './components/AiBuddyWidget';
 import { ArrowLeft, BookOpen, Sparkles, Award } from 'lucide-react';
 
@@ -22,9 +24,14 @@ export default function App() {
   const [selectedUnit, setSelectedUnit] = useState<UnitData | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
+  // Timers for evaluation reports
+  const [unitStartTimeMap, setUnitStartTimeMap] = useState<Record<number, number>>({});
+
   // Modals state
   const [isPlacementTestOpen, setIsPlacementTestOpen] = useState(false);
   const [isParentPortalOpen, setIsParentPortalOpen] = useState(false);
+  const [isStudentProfileOpen, setIsStudentProfileOpen] = useState(false);
+  const [evaluationReport, setEvaluationReport] = useState<EvaluationReport | null>(null);
   const [pronunciationVocab, setPronunciationVocab] = useState<VocabularyItem | null>(null);
 
   // Auto save progress
@@ -34,6 +41,22 @@ export default function App() {
 
   // Flatten all vocabularies across units
   const allVocabularies = UNITS_DATA.flatMap((u) => u.vocabularies);
+
+  const handleSelectUnit = (unit: UnitData) => {
+    setSelectedUnit(unit);
+    setUnitStartTimeMap((prev) => ({
+      ...prev,
+      [unit.id]: Date.now(),
+    }));
+  };
+
+  const handleSaveStudentProfile = (name: string, avatar: string) => {
+    setProgress((prev) => ({
+      ...prev,
+      studentName: name,
+      studentAvatar: avatar,
+    }));
+  };
 
   const handleToggleMastered = (id: string) => {
     setProgress((prev) => {
@@ -77,7 +100,12 @@ export default function App() {
     });
   };
 
-  const handleCompleteQuiz = (unitId: number, scorePercentage: number) => {
+  const handleCompleteQuiz = (
+    unitId: number,
+    scorePercentage: number,
+    details?: { quizTimeSeconds: number; correctAnswers: number; totalQuestions: number }
+  ) => {
+    // 1. Update progress
     setProgress((prev) => {
       const currentStars = prev.unitStars[unitId] || 0;
       let newStars = 1;
@@ -96,6 +124,53 @@ export default function App() {
         xp: prev.xp + Math.round(scorePercentage / 2),
       };
     });
+
+    // 2. Compute timing & generate Evaluation Report
+    const targetUnit = UNITS_DATA.find((u) => u.id === unitId) || UNITS_DATA[0];
+    const unitStartedAt = unitStartTimeMap[unitId] || (Date.now() - 150000);
+    const totalElapsedSec = Math.max(25, Math.round((Date.now() - unitStartedAt) / 1000));
+    const quizSec = details?.quizTimeSeconds || 45;
+    const flashcardSec = Math.max(15, totalElapsedSec - quizSec);
+    const correctAns = details?.correctAnswers || Math.round((scorePercentage / 100) * (details?.totalQuestions || 6));
+    const totalQ = details?.totalQuestions || 6;
+    const stars = scorePercentage >= 90 ? 3 : scorePercentage >= 60 ? 2 : 1;
+
+    // AI/Mascot Feedback
+    const sName = progress.studentName || 'Bé Bún';
+    let feedback = '';
+    if (scorePercentage >= 90) {
+      feedback = `Bé ${sName} quá xuất sắc! Bé đã học rất tập trung và đạt điểm tuyệt đối ${scorePercentage}% trong bài ${targetUnit.titleEn}. Mèo Miu Miu tự hào và gửi tặng bé 3 ngôi sao lấp lánh nhé! ⭐⭐⭐`;
+    } else if (scorePercentage >= 60) {
+      feedback = `Bé ${sName} học rất chăm chỉ! Bé đã làm đúng ${correctAns}/${totalQ} câu trong ${Math.ceil(quizSec / 60)} phút. Cùng làm lại để đỗ 3 sao rực rỡ nhé! 🎒`;
+    } else {
+      feedback = `Bé ${sName} đã cố gắng hết mình! Miu Miu tin bé chỉ cần xem lại flashcard một chút rồi ôn lại là sẽ đạt điểm cao ngay thôi! 🌟`;
+    }
+
+    const report: EvaluationReport = {
+      unitId,
+      unitTitleEn: targetUnit.titleEn,
+      unitTitleVi: targetUnit.titleVi,
+      studentName: sName,
+      studentAvatar: progress.studentAvatar || '🐱',
+      flashcardTimeSeconds: flashcardSec,
+      quizTimeSeconds: quizSec,
+      totalTimeSeconds: flashcardSec + quizSec,
+      correctAnswers: correctAns,
+      totalQuestions: totalQ,
+      scorePercentage,
+      stars,
+      aiFeedback: feedback,
+    };
+
+    setEvaluationReport(report);
+  };
+
+  const handleNextUnitFromReport = () => {
+    if (!evaluationReport) return;
+    const nextId = evaluationReport.unitId + 1;
+    const nextUnit = UNITS_DATA.find((u) => u.id === nextId) || UNITS_DATA[0];
+    handleSelectUnit(nextUnit);
+    setActiveTab('units');
   };
 
   const handleAddXp = (amount: number) => {
@@ -121,7 +196,7 @@ export default function App() {
 
   const handleCompletePlacementTest = (recUnit: number) => {
     const targetUnit = UNITS_DATA.find((u) => u.id === recUnit) || UNITS_DATA[0];
-    setSelectedUnit(targetUnit);
+    handleSelectUnit(targetUnit);
     setActiveTab('units');
   };
 
@@ -137,6 +212,7 @@ export default function App() {
         }}
         onOpenPlacementTest={() => setIsPlacementTestOpen(true)}
         onOpenParentPortal={() => setIsParentPortalOpen(true)}
+        onOpenStudentProfile={() => setIsStudentProfileOpen(true)}
         soundEnabled={soundEnabled}
         setSoundEnabled={setSoundEnabled}
       />
@@ -150,7 +226,8 @@ export default function App() {
               <UnitMap
                 units={UNITS_DATA}
                 progress={progress}
-                onSelectUnit={(unit) => setSelectedUnit(unit)}
+                onSelectUnit={handleSelectUnit}
+                onOpenStudentProfile={() => setIsStudentProfileOpen(true)}
               />
             ) : (
               <div>
@@ -246,6 +323,20 @@ export default function App() {
       <AiBuddyWidget />
 
       {/* Modals */}
+      <StudentProfileModal
+        isOpen={isStudentProfileOpen}
+        onClose={() => setIsStudentProfileOpen(false)}
+        progress={progress}
+        onSaveProfile={handleSaveStudentProfile}
+      />
+
+      <EvaluationReportModal
+        report={evaluationReport}
+        onClose={() => setEvaluationReport(null)}
+        onNextUnit={handleNextUnitFromReport}
+        onRetryQuiz={() => setEvaluationReport(null)}
+      />
+
       <PronunciationCoachModal
         vocab={pronunciationVocab}
         isOpen={!!pronunciationVocab}

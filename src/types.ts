@@ -43,6 +43,8 @@ export interface UnitData {
 }
 
 export interface UserProgress {
+  studentName: string;
+  studentAvatar: string;
   xp: number;
   streakDays: number;
   lastStudyDate: string; // YYYY-MM-DD
@@ -54,6 +56,22 @@ export interface UserProgress {
   dailyGoalMinutes: number;
   todayMinutesSpent: number;
   badges: string[]; // badge IDs unlocked
+}
+
+export interface EvaluationReport {
+  unitId: number;
+  unitTitleEn: string;
+  unitTitleVi: string;
+  studentName: string;
+  studentAvatar: string;
+  flashcardTimeSeconds: number;
+  quizTimeSeconds: number;
+  totalTimeSeconds: number;
+  correctAnswers: number;
+  totalQuestions: number;
+  scorePercentage: number;
+  stars: number;
+  aiFeedback: string;
 }
 
 export interface BadgeInfo {

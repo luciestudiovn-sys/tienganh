@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserProgress } from '../types';
-import { Flame, Star, Trophy, BookOpen, ShieldCheck, Sparkles, Volume2, VolumeX, HelpCircle } from 'lucide-react';
+import { Flame, Star, Trophy, BookOpen, ShieldCheck, Sparkles, Volume2, VolumeX, HelpCircle, User, Edit2 } from 'lucide-react';
 
 interface NavbarProps {
   progress: UserProgress;
@@ -8,6 +8,7 @@ interface NavbarProps {
   setActiveTab: (tab: 'units' | 'srs' | 'quiz' | 'games' | 'notebook' | 'progress') => void;
   onOpenPlacementTest: () => void;
   onOpenParentPortal: () => void;
+  onOpenStudentProfile: () => void;
   soundEnabled: boolean;
   setSoundEnabled: (enabled: boolean) => void;
 }
@@ -18,6 +19,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   setActiveTab,
   onOpenPlacementTest,
   onOpenParentPortal,
+  onOpenStudentProfile,
   soundEnabled,
   setSoundEnabled,
 }) => {
@@ -45,17 +47,28 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Gamification Stats Bar */}
-          <div className="flex items-center gap-2 sm:gap-3 bg-slate-50 px-3 py-2 rounded-2xl border-2 border-[#E2E8F0]">
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 bg-slate-50 px-3 py-2 rounded-2xl border-2 border-[#E2E8F0]">
+            {/* Student Profile Tag */}
+            <button
+              onClick={onOpenStudentProfile}
+              className="flex items-center gap-1.5 px-3 py-1 bg-amber-100 hover:bg-amber-200 border-2 border-amber-300 text-amber-950 rounded-xl text-xs font-black transition-all cursor-pointer shadow-2xs"
+              title="Bấm để đổi tên hoặc đổi avatar của bé"
+            >
+              <span className="text-base">{progress.studentAvatar || '🐱'}</span>
+              <span>{progress.studentName || 'Bé Bún'}</span>
+              <Edit2 className="w-3 h-3 text-amber-700 opacity-60 ml-0.5" />
+            </button>
+
             {/* Streak */}
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-white rounded-xl border-2 border-orange-200 shadow-2xs" title="Chuỗi ngày học liên tục">
-              <Flame className="w-5 h-5 text-orange-500 fill-orange-400 animate-pulse" />
-              <span className="font-extrabold text-orange-600 text-xs sm:text-sm">{progress.streakDays} ngày</span>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-xl border-2 border-orange-200 shadow-2xs" title="Chuỗi ngày học liên tục">
+              <Flame className="w-4 h-4 text-orange-500 fill-orange-400 animate-pulse" />
+              <span className="font-extrabold text-orange-600 text-xs">{progress.streakDays} ngày</span>
             </div>
 
             {/* XP Points */}
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-white rounded-xl border-2 border-yellow-300 shadow-2xs" title="Điểm kinh nghiệm XP">
-              <Star className="w-5 h-5 text-amber-500 fill-amber-400" />
-              <span className="font-extrabold text-amber-700 text-xs sm:text-sm">{progress.xp} XP</span>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-xl border-2 border-yellow-300 shadow-2xs" title="Điểm kinh nghiệm XP">
+              <Star className="w-4 h-4 text-amber-500 fill-amber-400" />
+              <span className="font-extrabold text-amber-700 text-xs">{progress.xp} XP</span>
             </div>
 
             {/* Placement Test trigger */}

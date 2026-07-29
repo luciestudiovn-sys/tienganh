@@ -118,18 +118,24 @@ app.post('/api/generate-quiz', async (req, res) => {
     const { unitTitle, vocabularies } = req.body;
     const ai = getGenAI();
 
-    const prompt = `Tạo 3 câu hỏi trắc nghiệm tiếng Anh cho trẻ em lớp 2 thuộc chủ đề "${unitTitle || 'Grade 2 English'}".
+    const prompt = `Tạo 5 câu hỏi trắc nghiệm tiếng Anh tương tác dành cho học sinh lớp 2 (6-7 tuổi) thuộc bài học "${unitTitle || 'Grade 2 English'}".
 Danh sách từ vựng gợi ý: ${JSON.stringify(vocabularies || ['bag', 'book', 'bike', 'bus'])}.
 
-Trả về danh sách 3 câu hỏi dưới dạng JSON:
+Bao gồm các dạng câu hỏi phong phú:
+1. Chọn nghĩa Tiếng Việt đúng cho từ tiếng Anh.
+2. Chọn hình ảnh/từ tiếng Anh đúng.
+3. Điền chữ cái bắt đầu còn thiếu (dạng "fill-blank").
+4. Nghe hoặc nhận biết từ vựng qua biểu tượng emoji.
+
+Trả về danh sách 5 câu hỏi dưới dạng mảng JSON:
 [
   {
     "id": "gen-1",
-    "questionText": "Câu hỏi ngắn gọn bằng tiếng Việt dễ hiểu",
+    "questionText": "Câu hỏi ngắn gọn bằng tiếng Việt sinh động",
     "type": "multiple-choice",
     "options": ["đáp án 1", "đáp án 2", "đáp án 3", "đáp án 4"],
-    "correctAnswer": "đáp án đúng trong số options",
-    "explanationVi": "Lời giải thích vui tươi dễ hiểu cho bé",
+    "correctAnswer": "đáp án đúng chính xác nằm trong options",
+    "explanationVi": "Lời giải thích ngắn gọn khen ngợi bé",
     "emoji": "🎈"
   }
 ]`;

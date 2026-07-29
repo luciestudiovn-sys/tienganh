@@ -6,11 +6,40 @@ interface UnitMapProps {
   units: UnitData[];
   progress: UserProgress;
   onSelectUnit: (unit: UnitData) => void;
+  onOpenStudentProfile?: () => void;
 }
 
-export const UnitMap: React.FC<UnitMapProps> = ({ units, progress, onSelectUnit }) => {
+export const UnitMap: React.FC<UnitMapProps> = ({ units, progress, onSelectUnit, onOpenStudentProfile }) => {
   return (
     <div className="py-4">
+      {/* Student Greeting Banner */}
+      <div className="bg-amber-100 border-4 border-slate-900 rounded-3xl p-4 sm:p-5 mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-white border-2 border-slate-900 flex items-center justify-center text-3xl shadow-xs shrink-0">
+            {progress.studentAvatar || '🐱'}
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-black text-slate-900">
+                Xin chào bé {progress.studentName || 'Bé Bún'}! 🎉
+              </h3>
+            </div>
+            <p className="text-xs font-bold text-slate-600">
+              Sẵn sàng cùng Mèo Miu Miu chinh phục các bài học Tiếng Anh 2 thú vị nào!
+            </p>
+          </div>
+        </div>
+
+        {onOpenStudentProfile && (
+          <button
+            onClick={onOpenStudentProfile}
+            className="px-4 py-2 bg-white hover:bg-amber-200 border-2 border-slate-900 rounded-2xl font-black text-xs text-slate-900 transition-all cursor-pointer shadow-2xs whitespace-nowrap"
+          >
+            ✏️ Đổi Tên & Linh Vật Cho Bé
+          </button>
+        )}
+      </div>
+
       {/* Hero Banner */}
       <div className="bg-yellow-400 border-4 border-slate-900 rounded-3xl p-6 text-slate-900 shadow-md mb-8 relative overflow-hidden">
         <div className="relative z-10 max-w-2xl">

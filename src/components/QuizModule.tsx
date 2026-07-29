@@ -7,7 +7,11 @@ import { Volume2, CheckCircle2, HelpCircle, Sparkles, RefreshCw, Trophy, ArrowRi
 interface QuizModuleProps {
   units: UnitData[];
   selectedUnit: UnitData | null;
-  onCompleteQuiz: (unitId: number, scorePercentage: number) => void;
+  onCompleteQuiz: (
+    unitId: number,
+    scorePercentage: number,
+    details?: { quizTimeSeconds: number; correctAnswers: number; totalQuestions: number }
+  ) => void;
 }
 
 export const QuizModule: React.FC<QuizModuleProps> = ({ units, selectedUnit, onCompleteQuiz }) => {
@@ -19,8 +23,99 @@ export const QuizModule: React.FC<QuizModuleProps> = ({ units, selectedUnit, onC
   const [score, setScore] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [quizStartTime, setQuizStartTime] = useState<number>(Date.now());
 
   const currentUnit = units.find((u) => u.id === activeUnitId) || units[0];
+
+  // Function to generate a rich set of 6 questions per unit
+  const buildQuizSetForUnit = (unit: UnitData) => {
+    const baseQuizzes = [...(unit.quizzes || [])];
+    const allVocabs = units.flatMap((u) => u.vocabularies);
+    const extraQuizzes: QuizQuestion[] = [];
+
+    unit.vocabularies.forEach((v, idx) => {
+      // 1. Meaning question (EN -> VI)
+      const otherVi = allVocabs.filter((item) => item.word !== v.word).map((item) => item.vietnamese);
+      const shuffledVi = (Array.from(new Set(otherVi)) as string[]).sort(() => 0.5 - Math.random()).slice(0, 3);
+      const optionsEnVi = [v.vietnamese, ...shuffledVi].sort(() => 0.5 - Math.random());
+
+      extraQuizzes.push({
+        id: `gen-m1-${unit.id}-${idx}`,
+        unitId: unit.id,
+        type: 'multiple-choice',
+        questionText: `Từ "${v.word}" có nghĩa là gì trong tiếng Việt?`,
+        options: optionsEnVi,
+        correctAnswer: v.vietnamese,
+        explanationVi: `"${v.word}" dịch sang tiếng Việt có nghĩa là: ${v.vietnamese}.`,
+        emoji: v.emoji,
+      });
+
+      // 2. Listening question
+      const otherEmojiVi = allVocabs
+        .filter((item) => item.word !== v.word)
+        .map((item) => `${item.emoji} ${item.vietnamese}`);
+      const shuffledEmojiVi = (Array.from(new Set(otherEmojiVi)) as string[]).sort(() => 0.5 - Math.random()).slice(0, 3);
+      const optionsListen = [`${v.emoji} ${v.vietnamese}`, ...shuffledEmojiVi].sort(() => 0.5 - Math.random());
+
+      extraQuizzes.push({
+        id: `gen-m2-${unit.id}-${idx}`,
+        unitId: unit.id,
+        type: 'listening',
+        questionText: `Bé hãy bấm loa nghe âm thanh và chọn hình ảnh đúng:`,
+        audioPrompt: v.word,
+        options: optionsListen,
+        correctAnswer: `${v.emoji} ${v.vietnamese}`,
+        explanationVi: `Âm thanh đọc "${v.word}" có nghĩa là ${v.vietnamese} ${v.emoji}.`,
+        emoji: v.emoji,
+      });
+
+      // 3. Fill missing letter
+      if (v.word.length >= 3) {
+        const missingChar = v.word[0].toUpperCase();
+        const displayWord = '_' + v.word.slice(1);
+        const distractors = ['A', 'B', 'C', 'D', 'S', 'H', 'P', 'M', 'T', 'K', 'L', 'G']
+          .filter((c) => c !== missingChar)
+          .sort(() => 0.5 - Math.random())
+          .slice(0, 3);
+        const fillOptions = [missingChar, ...distractors].sort(() => 0.5 - Math.random());
+
+        extraQuizzes.push({
+          id: `gen-m3-${unit.id}-${idx}`,
+          unitId: unit.id,
+          type: 'fill-blank',
+          questionText: `Điền chữ cái bắt đầu còn thiếu: ${displayWord} (${v.vietnamese})`,
+          options: fillOptions,
+          correctAnswer: missingChar,
+          explanationVi: `Từ đúng là "${v.word}", bắt đầu bằng chữ cái ${missingChar}.`,
+          emoji: v.emoji,
+        });
+      }
+
+      // 4. Sentence Scramble
+      if (v.exampleEn) {
+        const cleanSentence = v.exampleEn.replace(/[.,!?]/g, '');
+        const rawWords = cleanSentence.split(' ');
+        if (rawWords.length >= 3 && rawWords.length <= 6) {
+          const sentenceWords = [...rawWords].sort(() => 0.5 - Math.random());
+          extraQuizzes.push({
+            id: `gen-m4-${unit.id}-${idx}`,
+            unitId: unit.id,
+            type: 'sentence-scramble',
+            questionText: `Sắp xếp các từ thành câu đúng (${v.exampleVi}):`,
+            sentenceWords,
+            correctAnswer: cleanSentence,
+            explanationVi: `Câu đúng là: "${cleanSentence}." (${v.exampleVi}).`,
+            emoji: v.emoji,
+          });
+        }
+      }
+    });
+
+    const shuffledExtra = extraQuizzes.sort(() => 0.5 - Math.random());
+    // Combine base + extra to make at least 6 questions total
+    const needed = Math.max(0, 6 - baseQuizzes.length);
+    return [...baseQuizzes, ...shuffledExtra.slice(0, needed + 2)].slice(0, 6);
+  };
 
   // Sync activeUnitId when selectedUnit changes
   React.useEffect(() => {
@@ -32,12 +127,13 @@ export const QuizModule: React.FC<QuizModuleProps> = ({ units, selectedUnit, onC
   // Initialize questions
   React.useEffect(() => {
     if (currentUnit) {
-      setQuestions(currentUnit.quizzes);
+      setQuestions(buildQuizSetForUnit(currentUnit));
       setCurrentIndex(0);
       setSelectedAnswer(null);
       setScrambleOrder([]);
       setScore(0);
       setIsFinished(false);
+      setQuizStartTime(Date.now());
     }
   }, [activeUnitId]);
 
@@ -84,7 +180,13 @@ export const QuizModule: React.FC<QuizModuleProps> = ({ units, selectedUnit, onC
     } else {
       setIsFinished(true);
       const scorePct = Math.round((score / questions.length) * 100);
-      onCompleteQuiz(activeUnitId, scorePct);
+      const quizTimeSeconds = Math.max(10, Math.round((Date.now() - quizStartTime) / 1000));
+      
+      onCompleteQuiz(activeUnitId, scorePct, {
+        quizTimeSeconds,
+        correctAnswers: score,
+        totalQuestions: questions.length,
+      });
 
       if (scorePct >= 70) {
         playSoundEffect('fanfare');

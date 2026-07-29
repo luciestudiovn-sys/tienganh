@@ -5,6 +5,8 @@ const STORAGE_KEY = 'tieng_anh_2_global_success_user_progress';
 export const getDefaultProgress = (): UserProgress => {
   const todayStr = new Date().toISOString().split('T')[0];
   return {
+    studentName: 'Bé Bún',
+    studentAvatar: '🐱',
     xp: 120,
     streakDays: 1,
     lastStudyDate: todayStr,
@@ -29,6 +31,8 @@ export const loadUserProgress = (): UserProgress => {
     }
 
     const parsed: UserProgress = JSON.parse(raw);
+    if (!parsed.studentName) parsed.studentName = 'Bé Bún';
+    if (!parsed.studentAvatar) parsed.studentAvatar = '🐱';
     const todayStr = new Date().toISOString().split('T')[0];
 
     // Check streak logic
