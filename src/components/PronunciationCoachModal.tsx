@@ -194,6 +194,20 @@ export const PronunciationCoachModal: React.FC<PronunciationCoachModalProps> = (
                       <MicOff className="w-8 h-8" />
                     </button>
                   </div>
+                  {/* Animated Audio Soundwave */}
+                  <div className="flex items-center justify-center gap-1 my-2 h-8">
+                    {[12, 24, 16, 28, 20, 32, 18, 26, 14, 22].map((height, idx) => (
+                      <div
+                        key={idx}
+                        className="w-1.5 bg-rose-500 rounded-full animate-pulse"
+                        style={{
+                          height: `${height}px`,
+                          animationDelay: `${idx * 100}ms`,
+                          animationDuration: '600ms',
+                        }}
+                      />
+                    ))}
+                  </div>
                   <p className="text-xs font-bold text-rose-600 animate-pulse">
                     Đang thu âm... Bấm nút đỏ khi nói xong bé nhé!
                   </p>

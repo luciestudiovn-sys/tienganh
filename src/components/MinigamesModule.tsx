@@ -116,7 +116,8 @@ const MemoryMatchGame: React.FC<{ vocabularies: VocabularyItem[]; onAddXp: (amt:
   const [matches, setMatches] = React.useState(0);
 
   const initGame = () => {
-    const selected = [...vocabularies].sort(() => 0.5 - Math.random()).slice(0, 6);
+    if (!vocabularies || vocabularies.length === 0) return;
+    const selected = [...vocabularies].sort(() => 0.5 - Math.random()).slice(0, Math.min(6, vocabularies.length));
     const cardList: any[] = [];
 
     selected.forEach((v) => {
@@ -260,10 +261,10 @@ const BubblePopGame: React.FC<{ vocabularies: VocabularyItem[]; onAddXp: (amt: n
   const [poppedCount, setPoppedCount] = React.useState(0);
 
   const setupRound = () => {
-    if (vocabularies.length < 4) return;
+    if (!vocabularies || vocabularies.length === 0) return;
     const shuffled = [...vocabularies].sort(() => 0.5 - Math.random());
     const target = shuffled[0];
-    const choices = shuffled.slice(0, 4).sort(() => 0.5 - Math.random());
+    const choices = shuffled.slice(0, Math.min(4, shuffled.length)).sort(() => 0.5 - Math.random());
 
     setTargetVocab(target);
     setOptions(choices);

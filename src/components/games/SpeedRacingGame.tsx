@@ -17,10 +17,10 @@ export const SpeedRacingGame: React.FC<SpeedRacingGameProps> = ({ vocabularies, 
   const [totalXp, setTotalXp] = useState(0);
 
   const setupRound = () => {
-    if (vocabularies.length < 4) return;
+    if (!vocabularies || vocabularies.length === 0) return;
     const shuffled = [...vocabularies].sort(() => 0.5 - Math.random());
     const correct = shuffled[0];
-    const choices = shuffled.slice(0, 4).sort(() => 0.5 - Math.random());
+    const choices = shuffled.slice(0, Math.min(4, shuffled.length)).sort(() => 0.5 - Math.random());
 
     setTargetVocab(correct);
     setOptions(choices);

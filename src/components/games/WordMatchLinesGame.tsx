@@ -17,8 +17,8 @@ export const WordMatchLinesGame: React.FC<WordMatchLinesGameProps> = ({ vocabula
   const [score, setScore] = useState(0);
 
   const initGame = () => {
-    if (vocabularies.length < 4) return;
-    const selected = [...vocabularies].sort(() => 0.5 - Math.random()).slice(0, 4);
+    if (!vocabularies || vocabularies.length === 0) return;
+    const selected = [...vocabularies].sort(() => 0.5 - Math.random()).slice(0, Math.min(4, vocabularies.length));
     const shuffledRight = [...selected].sort(() => 0.5 - Math.random());
 
     setLeftItems(selected);

@@ -16,10 +16,10 @@ export const ArcheryGame: React.FC<ArcheryGameProps> = ({ vocabularies, onAddXp 
   const [hitIndex, setHitIndex] = useState<number | null>(null);
 
   const setupRound = () => {
-    if (vocabularies.length < 4) return;
+    if (!vocabularies || vocabularies.length === 0) return;
     const shuffled = [...vocabularies].sort(() => 0.5 - Math.random());
     const correct = shuffled[0];
-    const options = shuffled.slice(0, 4).sort(() => 0.5 - Math.random());
+    const options = shuffled.slice(0, Math.min(4, shuffled.length)).sort(() => 0.5 - Math.random());
 
     setTargetVocab(correct);
     setTargets(options);

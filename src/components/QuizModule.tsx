@@ -43,10 +43,15 @@ export const QuizModule: React.FC<QuizModuleProps> = ({
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [quizStartTime, setQuizStartTime] = useState<number>(Date.now());
 
+  const [isBossMode, setIsBossMode] = useState<boolean>(false);
+  const [bossHp, setBossHp] = useState<number>(10);
+  const [bossMaxHp, setBossMaxHp] = useState<number>(10);
+  const [bossHitAnimation, setBossHitAnimation] = useState<boolean>(false);
+
   const currentUnit = units.find((u) => u.id === activeUnitId) || units[0];
 
-  // Function to generate a rich set of 6 questions per unit
-  const buildQuizSetForUnit = (unit: UnitData) => {
+  // Function to generate a rich set of 10 questions for Boss Battle or 6 for standard
+  const buildQuizSetForUnit = (unit: UnitData, count = 6) => {
     const baseQuizzes = [...(unit.quizzes || [])];
     const allVocabs = units.flatMap((u) => u.vocabularies);
     const extraQuizzes: QuizQuestion[] = [];
@@ -130,8 +135,8 @@ export const QuizModule: React.FC<QuizModuleProps> = ({
     });
 
     const shuffledExtra = extraQuizzes.sort(() => 0.5 - Math.random());
-    const needed = Math.max(0, 6 - baseQuizzes.length);
-    return [...baseQuizzes, ...shuffledExtra.slice(0, needed + 2)].slice(0, 6);
+    const needed = Math.max(0, count - baseQuizzes.length);
+    return [...baseQuizzes, ...shuffledExtra.slice(0, needed + 4)].slice(0, count);
   };
 
   // Sync activeUnitId when selectedUnit changes
@@ -195,6 +200,11 @@ export const QuizModule: React.FC<QuizModuleProps> = ({
     if (isCorrect) {
       setScore((prev) => prev + 1);
       playSoundEffect('correct');
+      if (isBossMode) {
+        setBossHitAnimation(true);
+        setTimeout(() => setBossHitAnimation(false), 800);
+        setBossHp((prev) => Math.max(0, prev - 1));
+      }
     } else {
       playSoundEffect('wrong');
     }
@@ -277,11 +287,46 @@ export const QuizModule: React.FC<QuizModuleProps> = ({
   };
 
   return (
-    <div className="max-w-2xl mx-auto py-4">
-      {/* Unit Selector */}
-      <div className="bg-white rounded-2xl p-4 border-3 border-amber-300 shadow-xs mb-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-black text-slate-800">Chọn Bài Ôn Tập:</label>
+    <div className="max-w-2xl mx-auto py-4 space-y-4">
+      {/* Quiz Mode Toggle & Unit Selector */}
+      <div className="bg-white rounded-2xl p-4 border-3 border-amber-300 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Mode Switcher */}
+          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-300">
+            <button
+              onClick={() => {
+                setIsBossMode(false);
+                setQuestions(buildQuizSetForUnit(currentUnit, 6));
+                setCurrentIndex(0);
+                setSelectedAnswer(null);
+                setScore(0);
+                setIsFinished(false);
+              }}
+              className={`px-3 py-1.5 rounded-lg font-black text-xs transition-all cursor-pointer ${
+                !isBossMode ? 'bg-amber-400 text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              📝 Ôn Tập
+            </button>
+            <button
+              onClick={() => {
+                setIsBossMode(true);
+                setQuestions(buildQuizSetForUnit(currentUnit, 10));
+                setBossHp(10);
+                setBossMaxHp(10);
+                setCurrentIndex(0);
+                setSelectedAnswer(null);
+                setScore(0);
+                setIsFinished(false);
+              }}
+              className={`px-3 py-1.5 rounded-lg font-black text-xs transition-all cursor-pointer ${
+                isBossMode ? 'bg-rose-500 text-white shadow-xs animate-pulse' : 'text-rose-600 hover:text-rose-800'
+              }`}
+            >
+              ⚔️ Đấu Trùm Boss
+            </button>
+          </div>
+
           <select
             value={activeUnitId}
             onChange={(e) => setActiveUnitId(Number(e.target.value))}
@@ -308,6 +353,39 @@ export const QuizModule: React.FC<QuizModuleProps> = ({
           <span>Tạo Đề Thi Mới Bằng AI</span>
         </button>
       </div>
+
+      {/* BOSS BATTLE BANNER */}
+      {isBossMode && (
+        <div className={`bg-gradient-to-r from-rose-900 via-purple-900 to-slate-900 text-white p-4 rounded-3xl border-4 border-rose-500 shadow-xl flex items-center justify-between transition-transform ${
+          bossHitAnimation ? 'scale-105 border-yellow-300 bg-rose-800' : ''
+        }`}>
+          <div className="flex items-center gap-3">
+            <div className={`text-5xl transition-transform ${bossHitAnimation ? 'animate-ping' : 'animate-bounce'}`}>
+              👾
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-black text-base text-rose-300">TRÙM BẢO VỆ {currentUnit.titleEn.toUpperCase()}</span>
+                <span className="text-2xs bg-rose-500/50 text-rose-100 font-black px-2 py-0.5 rounded-full border border-rose-400">BOSS LEVEL</span>
+              </div>
+              <p className="text-xs text-slate-300 font-bold">Trả lời đúng 10 câu để đánh gục Ma Vương!</p>
+            </div>
+          </div>
+
+          {/* Boss HP Bar */}
+          <div className="w-36 text-right space-y-1">
+            <div className="text-xs font-black text-yellow-400 flex items-center justify-end gap-1">
+              <span>❤️ HP: {bossHp} / {bossMaxHp}</span>
+            </div>
+            <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden border border-rose-400">
+              <div
+                className="h-full bg-gradient-to-r from-rose-500 to-yellow-400 transition-all duration-500"
+                style={{ width: `${(bossHp / bossMaxHp) * 100}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Quiz Box */}
       {currentQ && !isFinished ? (

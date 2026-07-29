@@ -16,7 +16,7 @@ export const WhackAMoleGame: React.FC<WhackAMoleGameProps> = ({ vocabularies, on
   const [score, setScore] = useState(0);
 
   const setupRound = () => {
-    if (vocabularies.length === 0) return;
+    if (!vocabularies || vocabularies.length === 0) return;
     const target = vocabularies[Math.floor(Math.random() * vocabularies.length)];
     setTargetVocab(target);
     speakText(target.word);
@@ -28,7 +28,7 @@ export const WhackAMoleGame: React.FC<WhackAMoleGameProps> = ({ vocabularies, on
 
   // Moles popping timer loop
   useEffect(() => {
-    if (vocabularies.length === 0 || !targetVocab) return;
+    if (!vocabularies || vocabularies.length === 0 || !targetVocab) return;
 
     const interval = setInterval(() => {
       const holeIdx = Math.floor(Math.random() * 6);
@@ -39,7 +39,7 @@ export const WhackAMoleGame: React.FC<WhackAMoleGameProps> = ({ vocabularies, on
         setActiveMoleVocab(targetVocab);
       } else {
         const others = vocabularies.filter((v) => v.id !== targetVocab.id);
-        const randomOther = others[Math.floor(Math.random() * (others.length || 1))] || targetVocab;
+        const randomOther = others.length > 0 ? others[Math.floor(Math.random() * others.length)] : targetVocab;
         setActiveMoleVocab(randomOther);
       }
     }, 1200);

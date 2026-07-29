@@ -24,10 +24,10 @@ export const KidsMillionaireGame: React.FC<KidsMillionaireGameProps> = ({ vocabu
   const rewardsList = [10, 25, 50, 100, 200];
 
   const setupRound = (lvl: number) => {
-    if (vocabularies.length < 4) return;
+    if (!vocabularies || vocabularies.length === 0) return;
     const shuffled = [...vocabularies].sort(() => 0.5 - Math.random());
     const correct = shuffled[0];
-    const choices = shuffled.slice(0, 4).sort(() => 0.5 - Math.random());
+    const choices = shuffled.slice(0, Math.min(4, shuffled.length)).sort(() => 0.5 - Math.random());
 
     setCurrentVocab(correct);
     setOptions(choices);

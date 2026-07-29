@@ -16,8 +16,9 @@ export const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ vocabularies
   const [score, setScore] = useState(0);
 
   const setupRound = () => {
-    if (vocabularies.length === 0) return;
+    if (!vocabularies || vocabularies.length === 0) return;
     const item = vocabularies[Math.floor(Math.random() * vocabularies.length)];
+    if (!item || !item.word) return;
     setTargetVocab(item);
     setSelectedChars([]);
 
