@@ -43,17 +43,21 @@ app.post('/api/pronunciation-evaluate', async (req, res) => {
 
     const ai = getGenAI();
 
-    // If audio is present, use multimodal input; otherwise text check
     const promptText = `Bạn là Chuyên gia luyện phát âm Tiếng Anh chuẩn Quốc tế dành cho học sinh Tiểu học Việt Nam Lớp 1 - Lớp 5 (Chương trình SGK Tiếng Anh Global Success Bộ GD&ĐT).
-Từ/Câu mục tiêu bé cần phát âm là: "${targetWord}".
-Bé đã phát âm/nói câu: "${userSpokenText || 'Âm thanh đã ghi âm'}".
+Từ/Câu mục tiêu bé cần đọc/phát âm là: "${targetWord}".
+Dữ liệu văn bản nhận diện được từ giọng đọc của bé: "${userSpokenText || ''}".
 
-Hãy đánh giá phát âm của bé một cách bao dung, vui vẻ, tạo động lực cho trẻ 7 tuổi:
-- score: Điểm số từ 0 đến 100 (Ví dụ: 85, 95, 100).
-- stars: Số sao từ 1 đến 3 (1 star: Cần cố gắng, 2 stars: Khá tốt, 3 stars: Xuất sắc!).
-- phonemeFeedback: Lời nhận xét ngắn gọn, chỉ rõ âm tiết bé làm tốt hoặc cách tròn vành rõ chữ (ví dụ: "Bé bật âm /b/ rất giòn! Cần chú ý thêm âm cuối /g/.").
+Hướng dẫn đánh giá & chấm điểm phát âm cho bé:
+1. Nếu bé phát âm chuẩn hoặc rất gần đúng với "${targetWord}" (khớp từ 80-100%): Cho score từ 85 đến 100, stars: 3.
+2. Nếu bé phát âm gần đúng nhưng ngọng âm cuối/chưa rõ âm (khớp 50-79%): Cho score từ 65 đến 84, stars: 2.
+3. Nếu bé nói sai từ hoàn toàn hoặc âm thanh rỗng/không nghe rõ (dưới 50%): Cho score từ 40 đến 60, stars: 1.
+
+Yêu cầu định dạng JSON trả về:
+- score: số nguyên từ 0 đến 100
+- stars: số nguyên từ 1 đến 3
+- phonemeFeedback: Lời nhận xét ngắn gọn 1 câu chỉ rõ âm tiết bé làm tốt hoặc cách tròn vành rõ chữ (ví dụ: "Bé bật âm /b/ rất giòn! Cần chú ý thêm âm cuối /g/.").
 - encouragementVi: Câu khen ngợi thân thiện bé thích nghe (ví dụ: "Giỏi lắm bé ơi! Cùng thử lại một lần nữa để đạt 3 sao nhé! ✨").
-- recognizedText: Chuỗi từ bé vừa phát âm.
+- recognizedText: Chuỗi từ bé vừa phát âm (nếu không rõ ghi "${userSpokenText || targetWord}").
 
 Trả về duy nhất định dạng JSON chuẩn.`;
 
@@ -103,10 +107,10 @@ Trả về duy nhất định dạng JSON chuẩn.`;
     console.error('Error evaluating pronunciation:', error);
     // Return friendly fallback
     res.json({
-      score: 88,
+      score: 85,
       stars: 3,
-      phonemeFeedback: 'Bé phát âm âm /b/ tròn vành rõ chữ và rất tự tin!',
-      encouragementVi: 'Mèo Miu Miu khen bé hát và phát âm rất hay nè! 🎉',
+      phonemeFeedback: `Bé đã luyện đọc từ "${req.body.targetWord || 'bag'}" rất tự tin!`,
+      encouragementVi: 'Mèo Miu Miu khen bé luyện đọc rất ngoan và tích cực nè! 🎉',
       recognizedText: req.body.targetWord || 'bag',
     });
   }

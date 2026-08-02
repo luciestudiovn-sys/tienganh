@@ -19,6 +19,7 @@ export const PronunciationCoachModal: React.FC<PronunciationCoachModalProps> = (
 }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [micError, setMicError] = useState(false);
   const [spokenText, setSpokenText] = useState('');
   const [result, setResult] = useState<PronunciationResult | null>(null);
 
@@ -27,10 +28,24 @@ export const PronunciationCoachModal: React.FC<PronunciationCoachModalProps> = (
 
   if (!isOpen || !vocab) return null;
 
+  const handleSelfReadConfirm = () => {
+    playSoundEffect('correct');
+    speakText(vocab.word);
+    handleEvaluationResult({
+      score: 80,
+      stars: 2,
+      phonemeFeedback: `Bé đã luyện đọc to từ "${vocab.word}" theo giọng đọc chuẩn!`,
+      encouragementVi: 'Mèo Miu khen bé rất ngoan! Hãy tiếp tục phát âm mỗi ngày nhé! ⭐',
+      recognizedText: vocab.word,
+    });
+    setMicError(false);
+  };
+
   const startRecording = async () => {
     try {
       setResult(null);
       setSpokenText('');
+      setMicError(false);
       audioChunksRef.current = [];
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -61,23 +76,13 @@ export const PronunciationCoachModal: React.FC<PronunciationCoachModalProps> = (
           const transcript = event.results[0][0].transcript;
           setSpokenText(transcript);
         };
+        recognition.onerror = (e: any) => console.log('SpeechRec error:', e);
         recognition.start();
       }
     } catch (err) {
       console.error('Error accessing microphone:', err);
-      // If mic fails, allow simulated evaluation
-      setSpokenText(vocab.word);
       setIsRecording(false);
-      setIsAnalyzing(true);
-      setTimeout(() => {
-        handleEvaluationResult({
-          score: 90,
-          stars: 3,
-          phonemeFeedback: `Bé phát âm âm /${vocab.letter.toLowerCase()}/ tròn vành rõ chữ!`,
-          encouragementVi: 'Xuất sắc lắm bé ơi! Mèo Miu nghe rất rõ giọng bé rồi nè! ⭐',
-          recognizedText: vocab.word,
-        });
-      }, 1000);
+      setMicError(true);
     }
   };
 
@@ -103,7 +108,7 @@ export const PronunciationCoachModal: React.FC<PronunciationCoachModalProps> = (
           body: JSON.stringify({
             targetWord: vocab.word,
             userAudioBase64: base64Audio,
-            userSpokenText: spokenText || vocab.word,
+            userSpokenText: spokenText || '',
             mimeType: blob.type,
           }),
         });
@@ -114,7 +119,7 @@ export const PronunciationCoachModal: React.FC<PronunciationCoachModalProps> = (
     } catch (e) {
       console.error('Failed to evaluate audio:', e);
       handleEvaluationResult({
-        score: 88,
+        score: 85,
         stars: 3,
         phonemeFeedback: `Phát âm từ "${vocab.word}" rất rõ ràng!`,
         encouragementVi: 'Giỏi lắm bé ơi! Tiếng Anh của bé tiến bộ mỗi ngày nè! 🎉',
@@ -183,7 +188,32 @@ export const PronunciationCoachModal: React.FC<PronunciationCoachModalProps> = (
           {/* Recording Controls */}
           {!result && (
             <div className="my-6">
-              {isRecording ? (
+              {micError ? (
+                <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 text-center space-y-3">
+                  <div className="text-amber-700 font-extrabold text-sm">
+                    ⚠️ Chưa nhận được quyền Micro trên trình duyệt!
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                    Bé hãy bấm nút loa phía trên để nghe mẫu chuẩn 🔊, đọc to từ <strong className="text-amber-900">"{vocab.word}"</strong> theo loa, sau đó bấm nút xác nhận bên dưới nhé:
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                    <button
+                      onClick={startRecording}
+                      className="px-3 py-2 bg-white border border-amber-300 text-amber-900 font-bold rounded-xl text-xs flex items-center justify-center gap-1 cursor-pointer hover:bg-amber-100"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Thử lại Micro</span>
+                    </button>
+                    <button
+                      onClick={handleSelfReadConfirm}
+                      className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-md transition-transform active:scale-95"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>🎤 Tớ Đã Đọc To Từ Này! (+80 XP)</span>
+                    </button>
+                  </div>
+                </div>
+              ) : isRecording ? (
                 <div className="flex flex-col items-center gap-3">
                   <div className="relative">
                     <div className="w-20 h-20 rounded-full bg-rose-500 animate-ping absolute opacity-30" />

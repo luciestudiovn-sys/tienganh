@@ -405,7 +405,8 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
   };
 
   // 5. Listening Test item
-  const targetVocab = unit.vocabularies[0] || {
+  const [listeningIndex, setListeningIndex] = useState(0);
+  const targetVocab = unit.vocabularies[listeningIndex % Math.max(1, unit.vocabularies.length)] || {
     id: 'demo',
     word: 'apple',
     vietnamese: 'quả táo',
@@ -416,11 +417,18 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
     setListeningAnswer(selectedWord);
     if (selectedWord === targetVocab.word) {
       playSoundEffect('correct');
+      confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
       setListeningScore(true);
     } else {
       playSoundEffect('wrong');
       setListeningScore(false);
     }
+  };
+
+  const handleNextListeningQuestion = () => {
+    setListeningAnswer(null);
+    setListeningScore(null);
+    setListeningIndex((prev) => (prev + 1) % unit.vocabularies.length);
   };
 
   return (
@@ -575,13 +583,22 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
         {/* STEP 3: PRONUNCIATION COACH */}
         {activeStep === 'pronunciation' && (
           <div className="space-y-6">
-            <div className="text-center mb-4">
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 p-4 rounded-2xl text-center space-y-2">
+              <span className="text-3xl inline-block animate-bounce">🎙️</span>
               <h4 className="text-lg font-black text-slate-900">
-                Thử Thách Nói Chuẩn Tiếng Anh Cùng Mèo Miu!
+                Thử Thách Nói Chuẩn Tiếng Anh Cùng AI Mèo Miu!
               </h4>
               <p className="text-xs font-bold text-slate-600">
-                Bấm vào nút micro dưới đây để bé luyện phát âm từng từ nhé!
+                Bé bấm nút Loa 🔊 để nghe mẫu chuẩn, sau đó bấm chiếc Micro 🎤 để đọc và nhận điểm từ Mèo Miu nhé!
               </p>
+
+              {/* Progress Count of Tested Vocabs */}
+              <div className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-full border border-amber-300 text-xs font-black text-amber-900 shadow-2xs">
+                <span>Tiến độ luyện đọc:</span>
+                <span className="text-emerald-600 font-extrabold">
+                  {unit.vocabularies.filter((v) => progress.pronunciationScores[v.id] !== undefined).length} / {unit.vocabularies.length} từ
+                </span>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -590,28 +607,42 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
                 return (
                   <div
                     key={v.id}
-                    className="bg-slate-50 border-2 border-slate-900 p-4 rounded-2xl flex items-center justify-between gap-3 shadow-2xs"
+                    className={`p-4 rounded-2xl flex items-center justify-between gap-3 shadow-2xs border-2 transition-all ${
+                      score !== undefined
+                        ? 'bg-emerald-50/50 border-emerald-400'
+                        : 'bg-white border-slate-900 hover:border-amber-400'
+                    }`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-3xl">{v.emoji}</span>
                       <div>
                         <h5 className="font-black text-slate-900 text-sm">{v.word}</h5>
                         <p className="text-xs font-bold text-slate-500">{v.phonetic}</p>
+                        <p className="text-[11px] text-slate-400 font-medium">{v.vietnamese}</p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => speakText(v.word)}
+                        className="p-2.5 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-xl text-amber-900 font-black cursor-pointer shadow-2xs"
+                        title="Nghe mẫu chuẩn"
+                      >
+                        <Volume2 className="w-4 h-4" />
+                      </button>
+
                       {score !== undefined ? (
-                        <span className="px-2.5 py-1 bg-emerald-100 border border-emerald-500 text-emerald-900 font-black text-xs rounded-full">
+                        <span className="px-2.5 py-1 bg-emerald-100 border border-emerald-500 text-emerald-900 font-black text-xs rounded-full flex items-center gap-1">
                           ⭐ {score} điểm
                         </span>
                       ) : (
-                        <span className="text-xs font-bold text-slate-400">Chưa thử</span>
+                        <span className="text-xs font-bold text-slate-400">Chưa đọc</span>
                       )}
 
                       <button
                         onClick={() => onOpenPronunciationCoach(v)}
-                        className="p-2.5 bg-yellow-400 hover:bg-yellow-300 border-2 border-slate-900 rounded-xl text-slate-900 font-black cursor-pointer shadow-2xs"
+                        className="p-2.5 bg-yellow-400 hover:bg-yellow-300 border-2 border-slate-900 rounded-xl text-slate-900 font-black cursor-pointer shadow-2xs transition-transform active:scale-95"
+                        title="Luyện đọc AI"
                       >
                         <Mic className="w-4 h-4" />
                       </button>
@@ -624,9 +655,9 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
             <div className="text-center pt-4">
               <button
                 onClick={handleNextStep}
-                className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white border-3 border-slate-900 rounded-2xl font-black text-sm shadow-2xs cursor-pointer inline-flex items-center gap-2"
+                className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white border-3 border-slate-900 rounded-2xl font-black text-sm shadow-2xs cursor-pointer inline-flex items-center gap-2 transition-transform hover:scale-102"
               >
-                <span>Chuyển Sang Chơi Mini Game 🎮</span>
+                <span>Chuyển Sang Chơi Mini Game 🎮 ➔</span>
               </button>
             </div>
           </div>
@@ -650,10 +681,16 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
         {/* STEP 5: LISTENING MASTERY */}
         {activeStep === 'listening' && (
           <div className="space-y-6 max-w-xl mx-auto text-center">
-            <div className="bg-sky-50 border-3 border-sky-300 p-6 rounded-3xl space-y-4">
-              <span className="text-xs font-black text-sky-900 bg-sky-200 px-3 py-1 rounded-full uppercase tracking-wider">
-                Thử Thách Nghe Hiểu
-              </span>
+            <div className="bg-sky-50 border-3 border-sky-300 p-6 rounded-3xl space-y-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-sky-900 bg-sky-200 px-3 py-1 rounded-full uppercase tracking-wider">
+                  Thử Thách Nghe Hiểu
+                </span>
+                <span className="text-xs font-black text-slate-700 bg-white px-2.5 py-1 rounded-full border border-sky-200">
+                  Câu {listeningIndex + 1} / {unit.vocabularies.length}
+                </span>
+              </div>
+
               <h4 className="text-lg font-black text-slate-900">
                 Hãy nghe âm thanh và chọn đúng hình ảnh!
               </h4>
@@ -664,7 +701,7 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
               >
                 <Volume2 className="w-10 h-10" />
               </button>
-              <p className="text-xs font-bold text-slate-600">Bấm loa để nghe lại từ vựng</p>
+              <p className="text-xs font-bold text-slate-600">Bấm loa để nghe lại âm thanh mẫu</p>
 
               <div className="grid grid-cols-2 gap-4 pt-2">
                 {unit.vocabularies.slice(0, 4).map((v) => (
@@ -674,7 +711,7 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
                     className={`p-4 rounded-2xl border-3 font-black text-sm flex flex-col items-center gap-2 transition-all cursor-pointer ${
                       listeningAnswer === v.word
                         ? v.word === targetVocab.word
-                          ? 'bg-emerald-400 border-slate-900 text-slate-900 scale-105'
+                          ? 'bg-emerald-400 border-slate-900 text-slate-900 scale-105 shadow-md'
                           : 'bg-rose-400 border-slate-900 text-slate-900'
                         : 'bg-white border-slate-900 hover:bg-amber-100'
                     }`}
@@ -687,24 +724,32 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
 
               {listeningScore !== null && (
                 <div
-                  className={`p-3 rounded-2xl border-2 font-black text-xs ${
+                  className={`p-3 rounded-2xl border-2 font-black text-xs flex items-center justify-between gap-2 ${
                     listeningScore
                       ? 'bg-emerald-100 border-emerald-500 text-emerald-900'
                       : 'bg-rose-100 border-rose-500 text-rose-900'
                   }`}
                 >
-                  {listeningScore
-                    ? '🎉 Giỏi quá bé ơi! Đúng hình ảnh rồi!'
-                    : '❌ Sai mất rồi, bé thử nghe lại lần nữa xem sao nhé!'}
+                  <span>
+                    {listeningScore
+                      ? '🎉 Giỏi quá bé ơi! Chọn đúng hình ảnh rồi!'
+                      : '❌ Chưa chính xác lắm, bé bấm loa nghe lại xem sao nhé!'}
+                  </span>
+                  <button
+                    onClick={handleNextListeningQuestion}
+                    className="px-3 py-1.5 bg-sky-500 hover:bg-sky-600 text-white font-black rounded-xl text-xs shadow-2xs cursor-pointer"
+                  >
+                    Câu Tiếp ➔
+                  </button>
                 </div>
               )}
             </div>
 
             <button
               onClick={handleNextStep}
-              className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white border-3 border-slate-900 rounded-2xl font-black text-sm shadow-2xs cursor-pointer inline-flex items-center gap-2"
+              className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white border-3 border-slate-900 rounded-2xl font-black text-sm shadow-2xs cursor-pointer inline-flex items-center gap-2 transition-transform hover:scale-102"
             >
-              <span>Làm Bài Tập Quiz Thực Hành ✍️</span>
+              <span>Làm Bài Tập Quiz Trắc Nghiệm (Bước 6) ✍️ ➔</span>
             </button>
           </div>
         )}
