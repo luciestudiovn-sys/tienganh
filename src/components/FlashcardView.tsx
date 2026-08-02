@@ -12,6 +12,7 @@ interface FlashcardViewProps {
   onToggleMastered: (id: string) => void;
   onToggleHardWord: (id: string) => void;
   onOpenPronunciationCoach: (vocab: VocabularyItem) => void;
+  onInteractVocab?: (id: string) => void;
 }
 
 export const FlashcardView: React.FC<FlashcardViewProps> = ({
@@ -21,6 +22,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
   onToggleMastered,
   onToggleHardWord,
   onOpenPronunciationCoach,
+  onInteractVocab,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -37,16 +39,19 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
   const isHard = hardWordIds.includes(currentVocab.id);
 
   const handleNext = () => {
+    onInteractVocab?.(currentVocab.id);
     setIsFlipped(false);
     setCurrentIndex((prev) => (prev + 1) % vocabularies.length);
   };
 
   const handlePrev = () => {
+    onInteractVocab?.(currentVocab.id);
     setIsFlipped(false);
     setCurrentIndex((prev) => (prev - 1 + vocabularies.length) % vocabularies.length);
   };
 
   const handleMasteredClick = (id: string) => {
+    onInteractVocab?.(id);
     if (!isMastered) {
       playSoundEffect('star');
       confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });

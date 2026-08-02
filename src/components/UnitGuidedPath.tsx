@@ -40,11 +40,13 @@ interface UnitGuidedPathProps {
 interface SentenceFillCardProps {
   vocab: VocabularyItem;
   onOpenPronunciationCoach: (vocab: VocabularyItem) => void;
+  onSentenceInteract?: () => void;
 }
 
 const SentenceFillCard: React.FC<SentenceFillCardProps> = ({
   vocab,
   onOpenPronunciationCoach,
+  onSentenceInteract,
 }) => {
   const targetWord = vocab.word.toLowerCase();
   const fullSentence = vocab.exampleEn || `I have a ${vocab.word}.`;
@@ -76,6 +78,7 @@ const SentenceFillCard: React.FC<SentenceFillCardProps> = ({
   const isFilled = hiddenIndices.every((idx) => (userChars[idx] || '').trim().length > 0);
 
   const handleCheck = () => {
+    onSentenceInteract?.();
     let correct = true;
     hiddenIndices.forEach((idx) => {
       if ((userChars[idx] || '').toLowerCase() !== letters[idx]) {
@@ -96,6 +99,7 @@ const SentenceFillCard: React.FC<SentenceFillCardProps> = ({
   };
 
   const handleFillChar = (idx: number, char: string) => {
+    onSentenceInteract?.();
     setUserChars((prev) => ({ ...prev, [idx]: char.toLowerCase() }));
     setIsChecked(false);
   };
@@ -303,13 +307,26 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
 }) => {
   const isUnitCompleted = (progress?.completedUnits || []).includes(unit.id);
   const [activeStep, setActiveStep] = useState<StepType>('vocab');
-  const [unlockedStepIndex, setUnlockedStepIndex] = useState<number>(7); // Unlocked for free navigation
+  const [unlockedStepIndex, setUnlockedStepIndex] = useState<number>(isUnitCompleted ? 7 : 1);
   const [lockedStepNotice, setLockedStepNotice] = useState<string | null>(null);
   const [storyRead, setStoryRead] = useState(false);
   const [listeningAnswer, setListeningAnswer] = useState<string | null>(null);
   const [listeningScore, setListeningScore] = useState<boolean | null>(null);
   const [lastQuizScore, setLastQuizScore] = useState<number | null>(null);
   const [isQuizPassed, setIsQuizPassed] = useState<boolean>(isUnitCompleted);
+
+  // Track user interactions across lesson steps
+  const [interactedVocabIds, setInteractedVocabIds] = useState<string[]>([]);
+  const handleVocabInteract = (id: string) => {
+    setInteractedVocabIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  };
+
+  // Track minigames played in this session for Step 5 requirement
+  const [playedGames, setPlayedGames] = useState<string[]>([]);
+
+  const handleGamePlayed = (gameId: string) => {
+    setPlayedGames((prev) => (prev.includes(gameId) ? prev : [...prev, gameId]));
+  };
 
   // Rewards State
   const [rewardClaimed, setRewardClaimed] = useState(false);
@@ -323,6 +340,7 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
     setLastQuizScore(scorePercentage);
     if (scorePercentage >= 70) {
       setIsQuizPassed(true);
+      setUnlockedStepIndex((prev) => Math.max(prev, 7));
     }
     onCompleteUnitQuiz(unitId, scorePercentage, details);
   };
@@ -345,6 +363,10 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
   };
 
   const handleNextFromVocab = () => {
+    // Record interaction for current vocab
+    if (unit.vocabularies.length > 0) {
+      handleVocabInteract(unit.vocabularies[0].id);
+    }
     // Mark all vocabularies of this unit as mastered
     unit.vocabularies.forEach((v) => {
       if (!(progress?.masteredWordIds || []).includes(v.id)) {
@@ -368,11 +390,91 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
 
   // Helper to jump step
   const handleSelectStep = (stepId: StepType) => {
+    const targetIndex = stepsList.findIndex((s) => s.id === stepId) + 1;
+    if (targetIndex > unlockedStepIndex && !isUnitCompleted) {
+      playSoundEffect('wrong');
+      setLockedStepNotice(
+        '🔒 Bước học này chưa được mở khóa! Bé cần hoàn thành lần lượt bài học các bước trước để tiếp tục nhé! 🌟'
+      );
+      return;
+    }
     playSoundEffect('pop');
     setActiveStep(stepId);
   };
 
   const handleNextStep = () => {
+    // 1. Check Step 1: vocab (Listen & Repeat)
+    if (activeStep === 'vocab' && !isUnitCompleted) {
+      const hasMasteredWord = unit.vocabularies.some((v) =>
+        (progress?.masteredWordIds || []).includes(v.id)
+      );
+      if (interactedVocabIds.length === 0 && !hasMasteredWord) {
+        playSoundEffect('wrong');
+        setLockedStepNotice(
+          '🎧 Bé hãy lật thẻ từ vựng hoặc bấm nghe loa 🔊 các từ ở Bước 1 trước khi chuyển sang Bước 2 nhé! 🌟'
+        );
+        return;
+      }
+    }
+
+    // 2. Check Step 2: story (Listen & Chant)
+    if (activeStep === 'story' && !isUnitCompleted) {
+      if (!storyRead) {
+        playSoundEffect('wrong');
+        setLockedStepNotice(
+          '🎵 Bé hãy bấm nghe bài Chant 🎵 hoặc thực hành điền từ câu ở Bước 2 trước khi chuyển sang Bước 3 nhé! 🌟'
+        );
+        return;
+      }
+    }
+
+    // 3. Check Step 3: listening (Listen & Tick)
+    if (activeStep === 'listening' && !isUnitCompleted) {
+      if (listeningScore === null || !listeningScore) {
+        playSoundEffect('wrong');
+        setLockedStepNotice(
+          '👂 Bé hãy bấm nghe loa 🔊 và chọn đúng đáp án cho bài Luyện Nghe ở Bước 3 trước khi chuyển sang Bước 4 nhé! 🌟'
+        );
+        return;
+      }
+    }
+
+    // 4. Check Step 4: pronunciation (Let's Talk)
+    if (activeStep === 'pronunciation' && !isUnitCompleted) {
+      const testedPronunciationCount = unit.vocabularies.filter(
+        (v) => progress.pronunciationScores[v.id] !== undefined
+      ).length;
+      if (testedPronunciationCount < 1) {
+        playSoundEffect('wrong');
+        setLockedStepNotice(
+          '🎤 Bé hãy bấm Micro 🎤 thử luyện đọc ít nhất 1 từ vựng cùng Mèo Miu ở Bước 4 trước khi chuyển sang Bước 5 nhé! 🌟'
+        );
+        return;
+      }
+    }
+
+    // 5. Check Step 5: game (Fun Time)
+    if (activeStep === 'game' && !isUnitCompleted) {
+      if (playedGames.length < 2) {
+        playSoundEffect('wrong');
+        setLockedStepNotice(
+          `🎮 Bé cần tham gia chơi ít nhất 2 trò chơi mini ở Bước 5 để mở khóa Bài Kiểm Tra nhé! (Hiện tại bé đã chơi: ${playedGames.length}/2 trò)`
+        );
+        return;
+      }
+    }
+
+    // 6. Check Step 6: quiz (Comprehensive Quiz)
+    if (activeStep === 'quiz' && !isUnitCompleted) {
+      if (!isQuizPassed) {
+        playSoundEffect('wrong');
+        setLockedStepNotice(
+          '📝 Bé cần hoàn thành Bài Kiểm Tra ở Bước 6 và đạt từ 70% điểm trở lên để nhận Quả Cầu Tri Thức & Nhận Thưởng nhé!'
+        );
+        return;
+      }
+    }
+
     playSoundEffect('correct');
     const currentIndex = stepsList.findIndex((s) => s.id === activeStep);
     if (currentIndex < stepsList.length - 1) {
@@ -541,6 +643,7 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
                   key={vocab.id}
                   vocab={vocab}
                   onOpenPronunciationCoach={onOpenPronunciationCoach}
+                  onSentenceInteract={() => setStoryRead(true)}
                 />
               ))}
             </div>
@@ -567,6 +670,7 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
               onToggleMastered={onToggleMastered}
               onToggleHardWord={onToggleHardWord}
               onOpenPronunciationCoach={onOpenPronunciationCoach}
+              onInteractVocab={handleVocabInteract}
             />
 
             <div className="mt-6 text-center">
@@ -663,16 +767,30 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
           </div>
         )}
 
-        {/* STEP 4: MINI GAME BREAK */}
+        {/* STEP 5: MINI GAME BREAK */}
         {activeStep === 'game' && (
           <div className="space-y-4">
-            <MinigamesModule vocabularies={unit.vocabularies} onAddXp={() => {}} />
+            <MinigamesModule
+              vocabularies={unit.vocabularies}
+              onAddXp={() => {}}
+              onGamePlayed={handleGamePlayed}
+              playedGamesCount={playedGames.length}
+            />
             <div className="text-center pt-4">
               <button
                 onClick={handleNextStep}
-                className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white border-3 border-slate-900 rounded-2xl font-black text-sm shadow-2xs cursor-pointer inline-flex items-center gap-2"
+                className={`px-6 py-3 border-3 border-slate-900 rounded-2xl font-black text-xs sm:text-sm shadow-2xs cursor-pointer inline-flex items-center gap-2 transition-transform hover:scale-102 ${
+                  playedGames.length >= 2 || isUnitCompleted
+                    ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                    : 'bg-amber-400 hover:bg-amber-300 text-slate-950'
+                }`}
               >
-                <span>Hoàn Thành Game ➔ Chuyển Sang Luyện Nghe</span>
+                <span>
+                  {playedGames.length >= 2 || isUnitCompleted
+                    ? 'Đã Chơi Đủ 2 Game ➔ Chuyển Sang Bài Kiểm Tra Trắc Nghiệm (Bước 6) 📝'
+                    : `Cần Chơi Thêm ${2 - playedGames.length} Game Nữa (Đã chơi: ${playedGames.length}/2) 🎮`}
+                </span>
+                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -878,8 +996,8 @@ export const UnitGuidedPath: React.FC<UnitGuidedPathProps> = ({
             <h3 className="text-lg font-black text-slate-900">
               Phần Học Chưa Mở Khóa!
             </h3>
-            <p className="text-xs font-bold text-slate-600 leading-relaxed">
-              Bé cần học xong các phần trước theo thứ tự thì mới mở được <span className="text-amber-800 font-black">"{lockedStepNotice}"</span> nhé!
+            <p className="text-xs font-bold text-slate-700 leading-relaxed bg-amber-50 p-3 rounded-2xl border border-amber-200">
+              {lockedStepNotice}
             </p>
             <button
               onClick={() => setLockedStepNotice(null)}

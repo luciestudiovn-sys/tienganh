@@ -18,6 +18,8 @@ import { WhackAMoleGame } from './games/WhackAMoleGame';
 interface MinigamesModuleProps {
   vocabularies: VocabularyItem[];
   onAddXp: (amount: number) => void;
+  onGamePlayed?: (gameId: GameKey) => void;
+  playedGamesCount?: number;
 }
 
 export type GameKey =
@@ -34,8 +36,33 @@ export type GameKey =
   | 'millionaire'
   | 'whackamole';
 
-export const MinigamesModule: React.FC<MinigamesModuleProps> = ({ vocabularies, onAddXp }) => {
+export const MinigamesModule: React.FC<MinigamesModuleProps> = ({
+  vocabularies,
+  onAddXp,
+  onGamePlayed,
+  playedGamesCount = 0,
+}) => {
   const [activeGame, setActiveGame] = useState<GameKey>('memory');
+
+  React.useEffect(() => {
+    if (onGamePlayed) {
+      onGamePlayed('memory');
+    }
+  }, []);
+
+  const handleSelectGame = (gameId: GameKey) => {
+    setActiveGame(gameId);
+    if (onGamePlayed) {
+      onGamePlayed(gameId);
+    }
+  };
+
+  const handleWrappedAddXp = (amount: number) => {
+    if (onGamePlayed) {
+      onGamePlayed(activeGame);
+    }
+    onAddXp(amount);
+  };
 
   const gamesList: Array<{ id: GameKey; name: string; icon: string; color: string }> = [
     { id: 'memory', name: '1. Gọt Bút Chì', icon: '✏️', color: 'bg-emerald-500 text-white' },
@@ -61,7 +88,18 @@ export const MinigamesModule: React.FC<MinigamesModuleProps> = ({ vocabularies, 
             <Gamepad2 className="w-4 h-4 text-amber-500" />
             <span>Kho 12 Trò Chơi Mini Tiếng Anh Siêu Vui</span>
           </h2>
-          <span className="text-[11px] font-bold text-slate-500">Bấm chọn trò chơi bé thích 🎮</span>
+          <div className="flex items-center gap-2">
+            {playedGamesCount > 0 && (
+              <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-full border ${
+                playedGamesCount >= 2
+                  ? 'bg-emerald-100 border-emerald-400 text-emerald-800'
+                  : 'bg-amber-100 border-amber-300 text-amber-900'
+              }`}>
+                {playedGamesCount >= 2 ? '✅ Đã hoàn thành 2 game' : `🎮 Đã chơi ${playedGamesCount}/2 game`}
+              </span>
+            )}
+            <span className="text-[11px] font-bold text-slate-500 hidden sm:inline">Bấm chọn trò chơi bé thích 🎮</span>
+          </div>
         </div>
 
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-1.5">
@@ -70,7 +108,7 @@ export const MinigamesModule: React.FC<MinigamesModuleProps> = ({ vocabularies, 
             return (
               <button
                 key={g.id}
-                onClick={() => setActiveGame(g.id)}
+                onClick={() => handleSelectGame(g.id)}
                 className={`p-2 rounded-2xl font-black text-[11px] sm:text-xs flex flex-col items-center justify-center gap-1 cursor-pointer transition-all border-2 active:scale-95 ${
                   isActive
                     ? `${g.color} border-slate-900 shadow-md scale-102`
@@ -87,18 +125,18 @@ export const MinigamesModule: React.FC<MinigamesModuleProps> = ({ vocabularies, 
 
       {/* Render Active Game */}
       <div>
-        {activeGame === 'memory' && <MemoryMatchGame vocabularies={vocabularies} onAddXp={onAddXp} />}
-        {activeGame === 'bubble' && <BubblePopGame vocabularies={vocabularies} onAddXp={onAddXp} />}
-        {activeGame === 'archery' && <ArcheryGame vocabularies={vocabularies} onAddXp={onAddXp} />}
-        {activeGame === 'racing' && <SpeedRacingGame vocabularies={vocabularies} onAddXp={onAddXp} />}
-        {activeGame === 'scramble' && <WordScrambleGame vocabularies={vocabularies} onAddXp={onAddXp} />}
-        {activeGame === 'detective' && <PictureDetectiveGame vocabularies={vocabularies} onAddXp={onAddXp} />}
-        {activeGame === 'catsorter' && <CatSorterGame vocabularies={vocabularies} onAddXp={onAddXp} />}
-        {activeGame === 'wordmatch' && <WordMatchLinesGame vocabularies={vocabularies} onAddXp={onAddXp} />}
-        {activeGame === 'diver' && <TreasureDiverGame vocabularies={vocabularies} onAddXp={onAddXp} />}
-        {activeGame === 'peekaboo' && <PeekABooGame vocabularies={vocabularies} onAddXp={onAddXp} />}
-        {activeGame === 'millionaire' && <KidsMillionaireGame vocabularies={vocabularies} onAddXp={onAddXp} />}
-        {activeGame === 'whackamole' && <WhackAMoleGame vocabularies={vocabularies} onAddXp={onAddXp} />}
+        {activeGame === 'memory' && <MemoryMatchGame vocabularies={vocabularies} onAddXp={handleWrappedAddXp} />}
+        {activeGame === 'bubble' && <BubblePopGame vocabularies={vocabularies} onAddXp={handleWrappedAddXp} />}
+        {activeGame === 'archery' && <ArcheryGame vocabularies={vocabularies} onAddXp={handleWrappedAddXp} />}
+        {activeGame === 'racing' && <SpeedRacingGame vocabularies={vocabularies} onAddXp={handleWrappedAddXp} />}
+        {activeGame === 'scramble' && <WordScrambleGame vocabularies={vocabularies} onAddXp={handleWrappedAddXp} />}
+        {activeGame === 'detective' && <PictureDetectiveGame vocabularies={vocabularies} onAddXp={handleWrappedAddXp} />}
+        {activeGame === 'catsorter' && <CatSorterGame vocabularies={vocabularies} onAddXp={handleWrappedAddXp} />}
+        {activeGame === 'wordmatch' && <WordMatchLinesGame vocabularies={vocabularies} onAddXp={handleWrappedAddXp} />}
+        {activeGame === 'diver' && <TreasureDiverGame vocabularies={vocabularies} onAddXp={handleWrappedAddXp} />}
+        {activeGame === 'peekaboo' && <PeekABooGame vocabularies={vocabularies} onAddXp={handleWrappedAddXp} />}
+        {activeGame === 'millionaire' && <KidsMillionaireGame vocabularies={vocabularies} onAddXp={handleWrappedAddXp} />}
+        {activeGame === 'whackamole' && <WhackAMoleGame vocabularies={vocabularies} onAddXp={handleWrappedAddXp} />}
       </div>
     </div>
   );
