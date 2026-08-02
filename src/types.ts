@@ -52,6 +52,7 @@ export interface GiftItem {
   imageEmoji: string;
   requiredVouchers: number; // 5 vouchers
   category: string;
+  rarity?: 'common' | 'rare' | 'epic' | 'legendary';
 }
 
 export interface UserProgress {

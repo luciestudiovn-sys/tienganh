@@ -240,13 +240,16 @@ export default function App() {
     });
   };
 
-  const handleRedeemGift = (giftId: string) => {
+  const handleRedeemGift = (giftId: string, costVouchers: number = 5) => {
     setProgress((prev) => {
-      if ((prev.vouchers || 0) < 5) return prev;
+      if ((prev.vouchers || 0) < costVouchers) return prev;
+      const isRealGift = giftId && !giftId.startsWith('dummy-');
       return {
         ...prev,
-        vouchers: prev.vouchers - 5,
-        claimedGifts: Array.from(new Set([...(prev.claimedGifts || []), giftId])),
+        vouchers: Math.max(0, (prev.vouchers || 0) - costVouchers),
+        claimedGifts: isRealGift
+          ? Array.from(new Set([...(prev.claimedGifts || []), giftId]))
+          : prev.claimedGifts,
       };
     });
   };
@@ -337,6 +340,7 @@ export default function App() {
             progress={progress}
             onExchangeXpForVoucher={handleExchangeXpForVoucher}
             onRedeemGift={handleRedeemGift}
+            onAddXp={handleAddXp}
           />
         )}
 
